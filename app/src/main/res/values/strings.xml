@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">EzRemote</string>
+    <string name="welcome_msg">Welcome to EzRemote!</string>
+    <string name="scan_network_btn_text">Scan local network for computers</string>
+    <string name="manual_connection_btn_text">Manually connect to a local computer</string>
+    <string name="settings_btn_text">Settings</string>
+</resources>
