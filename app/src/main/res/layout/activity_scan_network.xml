@@ -8,17 +8,17 @@
     tools:layout_editor_absoluteY="81dp">
 
     <android.support.v7.widget.RecyclerView
-        android:id="@+id/recyclerView"
+        android:id="@+id/device_list"
         android:layout_width="0dp"
         android:layout_height="298dp"
         android:layout_marginEnd="9dp"
         android:layout_marginStart="9dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView2" />
+        app:layout_constraintTop_toBottomOf="@+id/top_text_view" />
 
     <TextView
-        android:id="@+id/textView2"
+        android:id="@+id/top_text_view"
         android:layout_width="0dp"
         android:layout_height="35dp"
         android:layout_marginBottom="302dp"
@@ -28,23 +28,23 @@
         android:text="Devices detected:"
         android:textAlignment="center"
         android:textSize="24sp"
-        app:layout_constraintBottom_toTopOf="@+id/textView3"
+        app:layout_constraintBottom_toTopOf="@+id/refresh_countdown_text_view"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:id="@+id/textView3"
+        android:id="@+id/refresh_countdown_text_view"
         android:layout_width="366dp"
         android:layout_height="39dp"
         android:textSize="18sp"
-        app:layout_constraintBottom_toTopOf="@+id/textView5"
+        app:layout_constraintBottom_toTopOf="@+id/or_text_view"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView2" />
+        app:layout_constraintTop_toBottomOf="@+id/top_text_view" />
 
     <TextView
-        android:id="@+id/textView5"
+        android:id="@+id/or_text_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="70dp"
@@ -53,14 +53,16 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView3" />
+        app:layout_constraintTop_toBottomOf="@+id/refresh_countdown_text_view" />
 
     <Button
-        android:id="@+id/button"
+        android:id="@+id/refresh_btn"
         android:layout_width="366dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="20dp"
-        android:text="Button"
+        android:text="Refresh now!"
+        android:textAppearance="@style/TextAppearance.AppCompat"
+        android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

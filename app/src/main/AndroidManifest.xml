@@ -18,7 +18,8 @@
         </activity>
         <activity android:name=".ScanNetworkActivity" />
         <activity android:name=".ManualConnectionActivity" />
-        <activity android:name=".SettingsActivity"></activity>
+        <activity android:name=".SettingsActivity" />
+        <activity android:name=".RemoteMenuActivity"></activity>
     </application>
 
 </manifest>
