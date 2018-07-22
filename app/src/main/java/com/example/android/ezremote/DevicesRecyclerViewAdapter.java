@@ -51,4 +51,9 @@ public class DevicesRecyclerViewAdapter extends RecyclerView.Adapter<DevicesRecy
         holder.deviceIp.setText(device.getDevIp());
         holder.deviceStatus.setText(device.getDevStatus());
     }
+
+    @Override
+    public int getItemCount() {
+        return devicesList.size();
+    }
 }
