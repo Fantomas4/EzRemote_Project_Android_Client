@@ -43,7 +43,7 @@ public class ScanNetworkActivity extends AppCompatActivity {
         refreshCountdownHandler = new RefreshCountdownHandler();
 
         prepareDevicesData();
-        new RefreshCountdownTask();
+        RefreshCountdownTask();
     }
 
     private class RefreshCountdownHandler extends Handler {
@@ -62,54 +62,31 @@ public class ScanNetworkActivity extends AppCompatActivity {
         adapter.notifyDataSetChanged();
     }
 
-//    private class RefreshCountdownTimer extends CountDownTimer {
-//
-//        public RefreshCountdownTimer(long millisInFuture, long countDownInterval) {
-//            super(millisInFuture, countDownInterval);
-//        }
-//
-//        @Override
-//        public void onTick(long millisUntilFinished) {
+    private class RefreshCountdownTimer extends CountDownTimer {
+
+        public RefreshCountdownTimer(long millisInFuture, long countDownInterval) {
+            super(millisInFuture, countDownInterval);
+        }
+
+        @Override
+        public void onTick(long millisUntilFinished) {
 //            long ms = millisUntilFinished;
 //            String text = String.format("%02d\' %02d\"",
 //                    TimeUnit.MILLISECONDS.toMinutes(ms) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(ms)),
 //                    TimeUnit.MILLISECONDS.toSeconds(ms) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(ms)));
-//            refreshCountdownHandler.sendEmptyMessage(0);
-//        }
-//
-//        @Override
-//        public void onFinish() {
-//
-//        }
-//    }
-
-    private class RefreshCountdownTask {
-        Thread refreshCountdownThread;
-        Runnable r;
-
-        public RefreshCountdownTask() {
-            r = new Runnable() {
-                @Override
-                public void run() {
-//                    RefreshCountdownTimer timer = new RefreshCountdownTimer(3000,1000);
-//                    timer.start();
-                    refreshCountdownHandler.sendEmptyMessage(0);
-                }
-            };
-
-            initializeThread();
+            refreshCountdownHandler.sendEmptyMessage(0);
         }
 
-        private void initializeThread() {
-            refreshCountdownThread = new Thread(r);
-            refreshCountdownThread.start();
+        @Override
+        public void onFinish() {
+
         }
+    }
 
+    private void RefreshCountdownTask() {
 
-
-
-
-
+        RefreshCountdownTimer timer = new RefreshCountdownTimer(3000,1000);
+        timer.start();
 
     }
 }

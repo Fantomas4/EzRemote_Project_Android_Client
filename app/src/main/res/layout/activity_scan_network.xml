@@ -39,6 +39,7 @@
         android:id="@+id/refresh_countdown_text_view"
         android:layout_width="366dp"
         android:layout_height="39dp"
+        android:textAlignment="center"
         android:textSize="18sp"
         app:layout_constraintBottom_toTopOf="@+id/or_text_view"
         app:layout_constraintEnd_toEndOf="parent"
