@@ -49,7 +49,12 @@ public class ScanNetworkActivity extends AppCompatActivity {
     private class RefreshCountdownHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
-            refreshCountdownTextView.setText("done!");
+            Bundle bundle = msg.getData();
+            long secondsRemaining = bundle.getLong("time_remaining");
+            String baseText = "Refreshing in ";
+            String secondsText = String.valueOf(secondsRemaining);
+
+            refreshCountdownTextView.setText(baseText.concat(secondsText));
         }
 
     }
@@ -64,28 +69,40 @@ public class ScanNetworkActivity extends AppCompatActivity {
 
     private class RefreshCountdownTimer extends CountDownTimer {
 
+
         public RefreshCountdownTimer(long millisInFuture, long countDownInterval) {
             super(millisInFuture, countDownInterval);
         }
 
+        private void sendTimeToHandler(long millisUntilFinished) {
+            Bundle bundle = new Bundle();
+            Message msg;
+
+            msg = refreshCountdownHandler.obtainMessage();
+            bundle.putLong("time_remaining", millisUntilFinished);
+            msg.setData(bundle);
+            refreshCountdownHandler.sendMessage(msg);
+        }
+
         @Override
         public void onTick(long millisUntilFinished) {
-//            long ms = millisUntilFinished;
+            sendTimeToHandler(TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished));
 //            String text = String.format("%02d\' %02d\"",
 //                    TimeUnit.MILLISECONDS.toMinutes(ms) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(ms)),
 //                    TimeUnit.MILLISECONDS.toSeconds(ms) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(ms)));
-            refreshCountdownHandler.sendEmptyMessage(0);
+//            String text = String.valueOf(TimeUnit.MILLISECONDS.toSeconds(ms));
+
         }
 
         @Override
         public void onFinish() {
-
+            sendTimeToHandler(0);
         }
     }
 
     private void RefreshCountdownTask() {
 
-        RefreshCountdownTimer timer = new RefreshCountdownTimer(3000,1000);
+        RefreshCountdownTimer timer = new RefreshCountdownTimer(10000,100);
         timer.start();
 
     }
