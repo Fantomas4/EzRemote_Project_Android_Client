@@ -41,7 +41,6 @@ public class ScanNetworkActivity extends AppCompatActivity {
         devicesRecyclerView.setAdapter(adapter);
 
         refreshCountdownHandler = new RefreshCountdownHandler();
-
         prepareDevicesData();
         RefreshCountdownTask();
     }
