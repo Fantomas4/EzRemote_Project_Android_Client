@@ -1,40 +1,72 @@
 package com.example.android.ezremote;
 
-import android.os.AsyncTask;
+import android.util.Log;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.Map;
 
-public class Client extends AsyncTask<Void, Void, String> {
+public class Client {
 
-    private String dstAddress;
-    private int dstPort;
+    private static String dstAddress;
+    private static int dstPort;
     private String response = "";
 
-    private Socket socket;
+    private static Socket socket;
+
+    private static boolean inConnection = false;
+
+    private class ClientNotInConnection extends Exception {
+
+        private ClientNotInConnection(String message) {
+            super(message);
+        }
+
+    }
+
+
 
     Client(String addr, int port) {
         dstAddress = addr;
         dstPort = port;
+        inConnection = true;
+        Log.d("constructor1", "before createSocket() reached");
+        createSocket();
+        Log.d("constructor2", "after createSocket() reached");
+    }
+
+    Client() {
+
+        try {
+            if (!inConnection) {
+                throw new ClientNotInConnection("Error: The client has not been connected to a server yet!");
+            }
+        } catch (ClientNotInConnection e) {
+            e.printStackTrace();
+        }
     }
 
 
     private void createSocket() {
         socket = null;
         try {
+            Log.d("bug", "mpika");
             socket = new Socket(dstAddress, dstPort);
+            if (socket == null) {
+                Log.d("socket12", "it is null");
+            } else {
+                Log.d("socket12", "it is NOT null");
+            }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -49,6 +81,18 @@ public class Client extends AsyncTask<Void, Void, String> {
                 e.printStackTrace();
             }
         }
+    }
+
+    public String getClientIpAddress() {
+        InetAddress addr = socket.getInetAddress();
+        String ip = (addr != null) ? addr.getHostAddress() : "*";
+
+        return ip;
+    }
+
+    public String sendMsgAndRecvReply(JSONObject jsonObject) {
+        sendMessage(jsonObject);
+        return receiveMessage();
     }
 
     public void sendMessage(JSONObject jsonObject) {
@@ -109,18 +153,6 @@ public class Client extends AsyncTask<Void, Void, String> {
         }
 
         return response;
-    }
-
-    @Override
-    protected String doInBackground(Void... arg0) {
-        return receiveMessage();
-    }
-
-    @Override
-    protected void onPostExecute(String result) {
-
-        // xreiazetai?
-        super.onPostExecute(result);
     }
 
 }
