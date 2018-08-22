@@ -4,16 +4,20 @@ import android.util.Log;
 
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.CharBuffer;
 
 public class Client {
 
@@ -36,12 +40,13 @@ public class Client {
 
 
     Client(String addr, int port) {
+        Log.d("eftasa", "1");
         dstAddress = addr;
         dstPort = port;
         inConnection = true;
-        Log.d("constructor1", "before createSocket() reached");
+        Log.d("eftasa", "2");
         createSocket();
-        Log.d("constructor2", "after createSocket() reached");
+        Log.d("eftasa", "5");
     }
 
     Client() {
@@ -57,15 +62,21 @@ public class Client {
 
 
     private void createSocket() {
+        Log.d("eftasa", "3");
         socket = null;
         try {
-            Log.d("bug", "mpika");
             socket = new Socket(dstAddress, dstPort);
-            if (socket == null) {
-                Log.d("socket12", "it is null");
-            } else {
-                Log.d("socket12", "it is NOT null");
-            }
+
+//            Socket socket = new Socket();
+//            socket.connect(new InetSocketAddress(dstAddress, dstPort), 5000);
+
+            Log.d("eftasa", "4");
+
+//            if (socket.isBound() == true) {
+//                Log.d("socket state", "socket is bound");
+//            } else {
+//                Log.d("socket state", "socket is not bound");
+//            }
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -99,6 +110,11 @@ public class Client {
 
         String message = jsonObject.toString();
 
+        // **** IMPORTANT ****
+        // Adding the \0 delimiter at the end of the message that will be send to the server
+        // is important, as this delimiter is used by the server to determine the end of the message.
+        message += "\0";
+
         // Use encoding of your choice
         Writer out = null;
         try {
@@ -122,35 +138,70 @@ public class Client {
 
         //Socket socket = null;
 
+        Log.d("Receive debug", "in receive_msg client func BEGINNING");
+
+        BufferedReader in = null;
+        final int DEFAULT_BUFFER_SIZE = 5000;
+        char[] cbuf = new char[DEFAULT_BUFFER_SIZE];
+        int offset = 0;
+
 
         try {
+//            in = new BufferedReader(new InputStreamReader(
+//                    socket.getInputStream(), "UTF8"));
+            in = new BufferedReader(new InputStreamReader(
+                    socket.getInputStream(), "UTF8"));
 
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(
-                    1024);
-            byte[] buffer = new byte[1024];
+            int recvSize;
 
-            int bytesRead;
-            InputStream inputStream = socket.getInputStream();
-
-            /*
-             * notice: inputStream.read() will block if no data return
-             */
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                byteArrayOutputStream.write(buffer, 0, bytesRead);
-                response += byteArrayOutputStream.toString("UTF-8");
+            while ((recvSize = in.read(cbuf, offset, DEFAULT_BUFFER_SIZE)) != -1) {
+                Log.d("in.read loop", "diavasa " + recvSize + "chars");
+                offset = recvSize;
             }
 
-        } catch (UnknownHostException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            response = "UnknownHostException: " + e.toString();
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            Log.d("cbuf", String.valueOf(cbuf));
+
+
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
-            response = "IOException: " + e.toString();
         }
+
+
+//        try {
+//
+//            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(
+//                    1024);
+//            byte[] buffer = new byte[1024];
+//
+//            int bytesRead;
+//            InputStream inputStream = socket.getInputStream();
+//
+//            Log.d("Receive debug", "reached point 1!");
+//
+//            /*
+//             * notice: inputStream.read() will block if no data return
+//             */
+//            while ((bytesRead = inputStream.read(buffer)) != -1) {
+//                byteArrayOutputStream.write(buffer, 0, bytesRead);
+//                response += byteArrayOutputStream.toString("UTF-8");
+//                Log.d("Receive debug", "reached point 2!");
+//            }
+//
+//            Log.d("Receive debug", "reached point 3!");
+//
+//        } catch (UnknownHostException e) {
+//            // TODO Auto-generated catch block
+//            e.printStackTrace();
+//            response = "UnknownHostException: " + e.toString();
+//        } catch (UnsupportedEncodingException e) {
+//            e.printStackTrace();
+//        } catch (IOException e) {
+//            // TODO Auto-generated catch block
+//            e.printStackTrace();
+//            response = "IOException: " + e.toString();
+//        }
+
+        Log.d("Receive debug", "in receive_msg client func END");
 
         return response;
     }

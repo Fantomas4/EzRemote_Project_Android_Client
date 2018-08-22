@@ -13,7 +13,8 @@ public class MessageGenerator {
         try {
             jsonObject.put("msg_type", msgType);
             jsonObject.put("msg_content", msgContent);
-            jsonObject.put("msg_data", msgData);
+            JSONObject msgDataJsonObj = new JSONObject(msgData);
+            jsonObject.put("msg_data", msgDataJsonObj);
         } catch (JSONException e) {
             e.printStackTrace();
         }

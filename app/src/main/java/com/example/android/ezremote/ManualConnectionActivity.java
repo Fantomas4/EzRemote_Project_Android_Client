@@ -4,6 +4,7 @@ import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.JsonReader;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -31,11 +32,12 @@ public class ManualConnectionActivity extends AppCompatActivity {
         protected String doInBackground(Void...arg0) {
 
             // create a new connection to the server
-            clientInstance = new Client("192.168.1.36", 3456);
+            clientInstance = new Client("192.168.1.102", 3456);
 
             // create make_connection request json message
             Map<String, String> msg_data = new HashMap<>();
             msg_data.put("ip", clientInstance.getClientIpAddress());
+//            msg_data.put("ip", "192.168.1.102");
             JSONObject jsonObject = MessageGenerator.generateJsonObject("request", "make_connection", msg_data);
 
             return clientInstance.sendMsgAndRecvReply(jsonObject);
@@ -44,10 +46,10 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(String result) {
-
+            Log.d("Receive debug prefinal", result);
             // xreiazetai?
             super.onPostExecute(result);
-
+            Log.d("Receive debug final", result);
             MessageAnalysis.analyzeMessage(result);
 
 
