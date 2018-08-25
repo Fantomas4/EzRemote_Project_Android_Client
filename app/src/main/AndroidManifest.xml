@@ -21,7 +21,7 @@
         <activity android:name=".ScanNetworkActivity" />
         <activity android:name=".ManualConnectionActivity" />
         <activity android:name=".SettingsActivity" />
-        <activity android:name=".RemoteMenuActivity"></activity>
+        <activity android:name=".RemoteMenuActivity"/>
     </application>
 
 

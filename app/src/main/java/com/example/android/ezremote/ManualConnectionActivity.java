@@ -50,7 +50,7 @@ public class ManualConnectionActivity extends AppCompatActivity {
             // xreiazetai?
             super.onPostExecute(result);
             Log.d("Receive debug final", result);
-            MessageAnalysis.analyzeMessage(result);
+            MessageAnalysis.analyzeMessage(getApplicationContext(), result);
 
 
         }

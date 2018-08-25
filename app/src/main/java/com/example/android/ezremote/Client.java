@@ -23,8 +23,6 @@ public class Client {
 
     private static String dstAddress;
     private static int dstPort;
-    private String response = "";
-
     private static Socket socket;
 
     private static boolean inConnection = false;
@@ -136,74 +134,67 @@ public class Client {
 
     private String receiveMessage() {
 
-        //Socket socket = null;
-
-        Log.d("Receive debug", "in receive_msg client func BEGINNING");
+//        Log.d("Receive debug", "in receive_msg client func BEGINNING");
 
         BufferedReader in = null;
         final int DEFAULT_BUFFER_SIZE = 5000;
         char[] cbuf = new char[DEFAULT_BUFFER_SIZE];
+        String finalMsg = "";
         int offset = 0;
 
 
         try {
-//            in = new BufferedReader(new InputStreamReader(
-//                    socket.getInputStream(), "UTF8"));
             in = new BufferedReader(new InputStreamReader(
-                    socket.getInputStream(), "UTF8"));
+                    socket.getInputStream(), "UTF-8"));
+
+//            in = new BufferedReader(new InputStreamReader(
+//                    socket.getInputStream()));
 
             int recvSize;
+            boolean endReception = false;
 
-            while ((recvSize = in.read(cbuf, offset, DEFAULT_BUFFER_SIZE)) != -1) {
+            while ((recvSize = in.read(cbuf)) != -1) {
                 Log.d("in.read loop", "diavasa " + recvSize + "chars");
-                offset = recvSize;
+                //offset = recvSize;
+                Log.d("in.read loop", "thesi 2");
+
+
+                // for debugging only
+                int counter = 0;
+
+                // Read each character from the received message in the cbuf buffer until the delimiter
+                // "\0" is detected. This delimiter marks the end of the message.
+                for (char c : cbuf) {
+                    if (Character.toString(c).equals("\0")) {
+                        Log.d("in for each loop", "vrika delimiter");
+
+                        // set the endReception flag to true to stop the InputStreamReader from
+                        // blocking the thread and waiting for another message.
+                        endReception = true;
+                        break;
+                    } else {
+                        finalMsg += String.valueOf(c);
+//                        counter ++;
+//                        Log.d("in for each loop", "vrika char");
+//                        Log.d("in for each loop", "char counter: " + counter);
+                    }
+                }
+
+                if (endReception) {
+                    // exit the while loop to prevent the InputStreamReader from blocking.
+                    break;
+                }
+
+                Log.d("in.read loop", "finalMsg is: " + finalMsg);
             }
-
-            Log.d("cbuf", String.valueOf(cbuf));
-
 
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-
-//        try {
-//
-//            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(
-//                    1024);
-//            byte[] buffer = new byte[1024];
-//
-//            int bytesRead;
-//            InputStream inputStream = socket.getInputStream();
-//
-//            Log.d("Receive debug", "reached point 1!");
-//
-//            /*
-//             * notice: inputStream.read() will block if no data return
-//             */
-//            while ((bytesRead = inputStream.read(buffer)) != -1) {
-//                byteArrayOutputStream.write(buffer, 0, bytesRead);
-//                response += byteArrayOutputStream.toString("UTF-8");
-//                Log.d("Receive debug", "reached point 2!");
-//            }
-//
-//            Log.d("Receive debug", "reached point 3!");
-//
-//        } catch (UnknownHostException e) {
-//            // TODO Auto-generated catch block
-//            e.printStackTrace();
-//            response = "UnknownHostException: " + e.toString();
-//        } catch (UnsupportedEncodingException e) {
-//            e.printStackTrace();
-//        } catch (IOException e) {
-//            // TODO Auto-generated catch block
-//            e.printStackTrace();
-//            response = "IOException: " + e.toString();
-//        }
-
         Log.d("Receive debug", "in receive_msg client func END");
 
-        return response;
+        return finalMsg;
     }
 
 }
