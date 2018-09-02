@@ -64,12 +64,22 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
         decMsecsButton = findViewById(R.id.decMsecsButton);
         decMsecsButton.setOnClickListener(this);
 
+        setTimerButton = findViewById(R.id.setTimerButton);
+        setTimerButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d("onClick listener", "mpika1");
+                new ShutdownCommandTask().execute("timer_shutdown");
+            }
+        });
+
+
         shutdownNowButton = findViewById(R.id.shutdownNowButton);
         shutdownNowButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.d("onClick listener", "mpika");
-                new ShutdownCommandTask().execute();
+                Log.d("onClick listener", "mpika2");
+                new ShutdownCommandTask().execute("instant_shutdown");
             }
         });
 
@@ -101,7 +111,6 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
                 break;
 
             case R.id.decHoursButton:
-                // do your code
                 changeTextViewValue("decrement", hoursTextView);
                 break;
 
@@ -144,25 +153,44 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
 
     }
 
-    private class ShutdownCommandTask extends AsyncTask<Void, String, String> {
+    private class ShutdownCommandTask extends AsyncTask<String, String, String> {
 
         @Override
-        protected String doInBackground(Void...arg0) {
+        protected String doInBackground(String... commandType) {
+
+            // json object that holds the data that will be send to the server.
+            JSONObject jsonObject = null;
 
             // create a new connection to the server
             clientInstance = new Client("192.168.1.102", 3456);
 
-            // create make_connection request json message
-            Map<String, String> msg_data = new HashMap<>();
-            msg_data.put("type", "shutdown_system");
-            msg_data.put("hours", "0");
-            msg_data.put("mins", "0");
-            msg_data.put("secs", "0");
-            msg_data.put("msecs", "0");
-//            msg_data.put("ip", "192.168.1.102");
-            JSONObject jsonObject = MessageGenerator.generateJsonObject("request", "execute_command", msg_data);
+            // takes the string argument located in the 0 position of the String[] array commandType.
+            if (commandType[0].equals("instant_shutdown")) {
+                // create make_connection request json message for instant shutdown
+                Map<String, String> msg_data = new HashMap<>();
+                msg_data.put("type", "shutdown_system");
+                msg_data.put("hours", "0");
+                msg_data.put("mins", "0");
+                msg_data.put("secs", "0");
+                msg_data.put("msecs", "0");
 
-            Log.d("shutdown", "eftasa1");
+                jsonObject = MessageGenerator.generateJsonObject("request", "execute_command", msg_data);
+
+                return clientInstance.sendMsgAndRecvReply(jsonObject);
+
+            } else if (commandType[0].equals("timer_shutdown")) {
+                // create make_connection request json message for instant shutdown
+                Map<String, String> msg_data = new HashMap<>();
+                msg_data.put("type", "shutdown_system");
+                msg_data.put("hours", hoursTextView.getText().toString());
+                msg_data.put("mins", minsTextView.getText().toString());
+                msg_data.put("secs", secsTextView.getText().toString());
+                msg_data.put("msecs", msecsTextView.getText().toString());
+
+                jsonObject = MessageGenerator.generateJsonObject("request", "execute_command", msg_data);
+
+
+            }
 
             return clientInstance.sendMsgAndRecvReply(jsonObject);
 
