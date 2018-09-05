@@ -36,10 +36,7 @@
             android:id="@+id/ipEditText"
             android:layout_width="match_parent"
             android:layout_height="42dp"
-            android:ems="10"
-            android:inputType="number"
-            tools:layout_editor_absoluteX="15dp"
-            tools:layout_editor_absoluteY="136dp" />
+            android:ems="10" />
     </LinearLayout>
 
     <LinearLayout

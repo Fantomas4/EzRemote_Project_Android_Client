@@ -17,20 +17,26 @@ import java.util.Map;
 public class ManualConnectionActivity extends AppCompatActivity {
 
 
-    EditText ipInputField;
+    EditText ipInput;
     EditText portInput;
     TextView notificationMsg;
     Button connectButton;
 
     Client clientInstance;
 
-    private class ConnectionTask extends AsyncTask<Void, String, String> {
+    private class ConnectionTask extends AsyncTask<String, String, String> {
 
         @Override
-        protected String doInBackground(Void...arg0) {
+        protected String doInBackground(String... connectionData) {
 
             // create a new connection to the server
+
+            // *** USED ONLY DURING APP TESTING ***
             clientInstance = new Client("192.168.1.102", 3456);
+
+            // *** FOR NORMAL APPLICATION USE ***
+            //clientInstance = new Client(connectionData[0], Integer.parseInt(connectionData[1]));
+
 
             // create make_connection request json message
             Map<String, String> msg_data = new HashMap<>();
@@ -61,7 +67,7 @@ public class ManualConnectionActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_manual_connection);
-        ipInputField = (EditText)findViewById(R.id.ipEditText);
+        ipInput = (EditText)findViewById(R.id.ipEditText);
         portInput = (EditText)findViewById(R.id.portEditText);
         notificationMsg = (TextView)findViewById(R.id.notificationMsgTextView);
         connectButton = (Button)findViewById(R.id.connect_button);
@@ -76,7 +82,11 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
     private void connect() {
 
-        new ConnectionTask().execute();
+        String ipString = ipInput.getText().toString();
+        String port = portInput.getText().toString();
+
+
+        new ConnectionTask().execute(ipString, port);
 
     }
 }
