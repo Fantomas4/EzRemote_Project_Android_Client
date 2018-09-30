@@ -1,5 +1,6 @@
 package com.example.android.ezremote;
 
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -41,7 +42,7 @@ public class ManualConnectionActivity extends AppCompatActivity {
             // create make_connection request json message
             Map<String, String> msg_data = new HashMap<>();
             msg_data.put("ip", clientInstance.getClientIpAddress());
-//            msg_data.put("ip", "192.168.1.102");
+            Log.d("getclientip is: ",clientInstance.getClientIpAddress());
             JSONObject jsonObject = MessageGenerator.generateJsonObject("request", "make_connection", msg_data);
 
             return clientInstance.sendMsgAndRecvReply(jsonObject);
@@ -49,13 +50,19 @@ public class ManualConnectionActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(String result) {
-            Log.d("Receive debug prefinal", result);
+        protected void onPostExecute(String reply) {
+            Log.d("Receive debug prefinal", reply);
             // xreiazetai?
-            super.onPostExecute(result);
-            Log.d("Receive debug final", result);
-            MessageAnalysis.analyzeMessage(getApplicationContext(), result);
+            super.onPostExecute(reply);
+            Log.d("Receive debug final", reply);
+            String analysisResult = MessageAnalysis.analyzeMessage(reply);
 
+            if (analysisResult.equals("connection_request_accepted")) {
+                // Switch to the RemoteMenuActivity screen.
+                // note: Instead of using (getApplicationContext) use YourActivity.this
+                Intent intent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
+                ManualConnectionActivity.this.startActivity(intent);
+            }
 
         }
 

@@ -17,9 +17,11 @@ public class MessageAnalysis {
 
     }
 
-    static public void analyzeMessage(Context context, String msg) {
+    static public String analyzeMessage(String msg) {
 
         Log.d("analyzeMessage", "MSG RECEIVED IS ::::::::::::::::::: " + msg);
+
+        String analysisResult = "no_result";
 
         JSONObject jsonObject = null;
         try {
@@ -39,14 +41,8 @@ public class MessageAnalysis {
                     String status = msgData.getString("connection_request_status");
 
                     if(status.equals("accepted")) {
-                        if (msgData.getString("connection_request_status").equals("accepted")) {
-                            // The server has accepted the client's request for bonding in a new connection
-                            // Switch to the RemoteMenuActivity screen.
-                            Log.d("intent", "eftasa sto intent))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))");
-                            Intent intent = new Intent(context, RemoteMenuActivity.class);
-                            context.startActivity(intent);
-                            Log.d("intent", "perasa to intent((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((new in");
-                        }
+                        // The server has accepted the client's request for bonding in a new connection
+                        analysisResult = "connection_request_accepted";
                     }
 
 
@@ -57,5 +53,7 @@ public class MessageAnalysis {
         } catch (JSONException e) {
             e.printStackTrace();
         }
+
+        return analysisResult;
     }
 }

@@ -101,7 +101,10 @@ public class Client {
 
     public String sendMsgAndRecvReply(JSONObject jsonObject) {
         sendMessage(jsonObject);
-        return receiveMessage();
+
+        String receivedMessage = receiveMessage();
+
+        return receivedMessage;
     }
 
     public void sendMessage(JSONObject jsonObject) {
@@ -116,16 +119,20 @@ public class Client {
         // Use encoding of your choice
         Writer out = null;
         try {
+            Log.d("writer 1-1", "writer 1-1");
             out = new BufferedWriter(new OutputStreamWriter(
                     socket.getOutputStream(), "UTF8"));
+            Log.d("writer 1-2", "writer 1-2");
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         // append and flush in logical chunks
         try {
+            Log.d("writer 1-3", "writer 1-3");
             out.append(message);
             out.flush();
+            Log.d("writer 1-4", "writer 1-4");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -144,12 +151,13 @@ public class Client {
 
 
         try {
+            Log.d("reader 1-1", "reader 1-1");
             in = new BufferedReader(new InputStreamReader(
                     socket.getInputStream(), "UTF-8"));
 
 //            in = new BufferedReader(new InputStreamReader(
 //                    socket.getInputStream()));
-
+            Log.d("reader 1-2", "reader 1-2");
             int recvSize;
             boolean endReception = false;
 
@@ -193,6 +201,8 @@ public class Client {
         }
 
         Log.d("Receive debug", "in receive_msg client func END");
+
+        Log.d("reader 1-3", "reader 1-3");
 
         return finalMsg;
     }

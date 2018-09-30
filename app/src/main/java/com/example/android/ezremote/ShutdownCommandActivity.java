@@ -161,8 +161,9 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
             // json object that holds the data that will be send to the server.
             JSONObject jsonObject = null;
 
-            // create a new connection to the server
-            clientInstance = new Client("192.168.1.102", 3456);
+            // create a client instance that has static fields containing the info for the connection
+            // that has already been created.
+            clientInstance = new Client();
 
             // takes the string argument located in the 0 position of the String[] array commandType.
             if (commandType[0].equals("instant_shutdown")) {
@@ -202,7 +203,7 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
             // xreiazetai?
             super.onPostExecute(result);
             Log.d("Receive debug final", result);
-            MessageAnalysis.analyzeMessage(getApplicationContext(), result);
+            // MessageAnalysis.analyzeMessage(getApplicationContext(), result);
 
 
         }
