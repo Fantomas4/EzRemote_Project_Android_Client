@@ -12,6 +12,9 @@ public class MainActivity extends AppCompatActivity {
     private Button manualConnectionBtn;
     private Button settingsBtn;
 
+//    public static
+//    MainActivity::client
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

@@ -163,7 +163,8 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
 
             // create a client instance that has static fields containing the info for the connection
             // that has already been created.
-            clientInstance = new Client();
+//            clientInstance = Client.instance;
+            clientInstance = new Client("155.207.229.119", 3456);
 
             // takes the string argument located in the 0 position of the String[] array commandType.
             if (commandType[0].equals("instant_shutdown")) {

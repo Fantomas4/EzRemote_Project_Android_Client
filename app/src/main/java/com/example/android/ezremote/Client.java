@@ -6,23 +6,23 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.nio.CharBuffer;
 
 public class Client {
 
+    public static Client instance;
+
     private static String dstAddress;
     private static int dstPort;
+    private static OutputStreamWriter outputStreamWriter;
+    private static Writer bufWriter;
+    private static InputStreamReader inputStreamReader;
+    private static BufferedReader bufReader;
     private static Socket socket;
 
     private static boolean inConnection = false;
@@ -44,6 +44,31 @@ public class Client {
         inConnection = true;
         Log.d("eftasa", "2");
         createSocket();
+
+        try {
+            outputStreamWriter = new OutputStreamWriter(socket.getOutputStream(), "UTF8");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Use encoding of your choice
+        Log.d("writer 1-1", "writer 1-1");
+        bufWriter = new BufferedWriter(outputStreamWriter);
+        Log.d("writer 1-2", "writer 1-2");
+
+
+        try {
+            inputStreamReader = new InputStreamReader(socket.getInputStream(), "UTF-8");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        Log.d("reader 1-1", "reader 1-1");
+        bufReader = new BufferedReader(inputStreamReader);
+
+        Log.d("reader 1-2", "reader 1-2");
+
+
         Log.d("eftasa", "5");
     }
 
@@ -110,28 +135,19 @@ public class Client {
     public void sendMessage(JSONObject jsonObject) {
 
         String message = jsonObject.toString();
-
+//        Log.d("writer", "The message1 is: " + message);
         // **** IMPORTANT ****
         // Adding the \0 delimiter at the end of the message that will be send to the server
         // is important, as this delimiter is used by the server to determine the end of the message.
         message += "\0";
 
-        // Use encoding of your choice
-        Writer out = null;
-        try {
-            Log.d("writer 1-1", "writer 1-1");
-            out = new BufferedWriter(new OutputStreamWriter(
-                    socket.getOutputStream(), "UTF8"));
-            Log.d("writer 1-2", "writer 1-2");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
         // append and flush in logical chunks
         try {
             Log.d("writer 1-3", "writer 1-3");
-            out.append(message);
-            out.flush();
+            Log.d("writer", "The message2 is: " + message);
+            bufWriter.append(message);
+            bufWriter.flush();
             Log.d("writer 1-4", "writer 1-4");
         } catch (IOException e) {
             e.printStackTrace();
@@ -143,25 +159,18 @@ public class Client {
 
 //        Log.d("Receive debug", "in receive_msg client func BEGINNING");
 
-        BufferedReader in = null;
+
         final int DEFAULT_BUFFER_SIZE = 5000;
         char[] cbuf = new char[DEFAULT_BUFFER_SIZE];
         String finalMsg = "";
         int offset = 0;
 
 
+        int recvSize;
+        boolean endReception = false;
+
         try {
-            Log.d("reader 1-1", "reader 1-1");
-            in = new BufferedReader(new InputStreamReader(
-                    socket.getInputStream(), "UTF-8"));
-
-//            in = new BufferedReader(new InputStreamReader(
-//                    socket.getInputStream()));
-            Log.d("reader 1-2", "reader 1-2");
-            int recvSize;
-            boolean endReception = false;
-
-            while ((recvSize = in.read(cbuf)) != -1) {
+            while ((recvSize = bufReader.read(cbuf)) != -1) {
                 Log.d("in.read loop", "diavasa " + recvSize + "chars");
                 //offset = recvSize;
                 Log.d("in.read loop", "thesi 2");
@@ -196,9 +205,11 @@ public class Client {
                 Log.d("in.read loop", "finalMsg is: " + finalMsg);
             }
 
+
         } catch (IOException e) {
             e.printStackTrace();
         }
+
 
         Log.d("Receive debug", "in receive_msg client func END");
 
