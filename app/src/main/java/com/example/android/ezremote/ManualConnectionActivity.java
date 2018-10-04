@@ -33,9 +33,9 @@ public class ManualConnectionActivity extends AppCompatActivity {
             // create a new connection to the server
 
             // *** USED ONLY DURING APP TESTING ***
-            clientInstance = new Client("155.207.229.119", 3456);
-//            Client.instance = new Client("155.207.228.13", 3456);
-
+//            clientInstance = new Client("192.168.1.108", 7890);
+            Client.instance = new Client("192.168.1.108", 7890);
+            clientInstance = Client.instance;
             // *** FOR NORMAL APPLICATION USE ***
             //clientInstance = new Client(connectionData[0], Integer.parseInt(connectionData[1]));
 
