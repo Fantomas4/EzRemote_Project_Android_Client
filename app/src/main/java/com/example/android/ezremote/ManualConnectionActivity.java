@@ -34,7 +34,7 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
             // *** USED ONLY DURING APP TESTING ***
 //            clientInstance = new Client("192.168.1.108", 7890);
-            Client.instance = new Client("192.168.1.108", 7890);
+            Client.instance = new Client("192.168.1.103", 7890);
             clientInstance = Client.instance;
             // *** FOR NORMAL APPLICATION USE ***
             //clientInstance = new Client(connectionData[0], Integer.parseInt(connectionData[1]));
