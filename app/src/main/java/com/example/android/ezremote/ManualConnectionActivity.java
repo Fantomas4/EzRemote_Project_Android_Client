@@ -34,11 +34,11 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
             // *** USED ONLY DURING APP TESTING ***
 //            clientInstance = new Client("192.168.1.108", 7890);
-            Client.instance = new Client("192.168.1.103", 7890);
-            clientInstance = Client.instance;
+//            Client.instance = new Client("192.168.1.103", 7890);
+//            clientInstance = Client.instance;
             // *** FOR NORMAL APPLICATION USE ***
-            //clientInstance = new Client(connectionData[0], Integer.parseInt(connectionData[1]));
-
+            clientInstance = new Client(connectionData[0], Integer.parseInt(connectionData[1]));
+            clientInstance = Client.instance;
 
             // create make_connection request json message
             Map<String, String> msg_data = new HashMap<>();

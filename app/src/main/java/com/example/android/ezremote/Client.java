@@ -157,7 +157,7 @@ public class Client {
 
     private String receiveMessage() {
 
-//        Log.d("Receive debug", "in receive_msg client func BEGINNING");
+        Log.d("Receive debug", "in receive_msg client func BEGINNING");
 
 
         final int DEFAULT_BUFFER_SIZE = 5000;
