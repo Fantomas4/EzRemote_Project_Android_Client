@@ -38,11 +38,10 @@ public class Client {
 
 
     Client(String addr, int port) {
-        Log.d("eftasa", "1");
         dstAddress = addr;
         dstPort = port;
         inConnection = true;
-        Log.d("eftasa", "2");
+
         createSocket();
 
         try {
