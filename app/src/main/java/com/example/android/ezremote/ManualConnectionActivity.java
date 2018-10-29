@@ -12,6 +12,8 @@ import android.widget.TextView;
 
 import org.json.JSONObject;
 
+import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,8 +38,19 @@ public class ManualConnectionActivity extends AppCompatActivity {
 //            Client.instance = new Client("192.168.1.103", 7890);
 //            clientInstance = Client.instance;
 
+
+            // NOTE: Network activities should NEVER be put in the main thread (causes unhandled exception)
+
             // *** FOR NORMAL APPLICATION USE ***
-            Client.instance = new Client(connectionData[0], Integer.parseInt(connectionData[1]));
+            try {
+                Client.instance = new Client(connectionData[0], Integer.parseInt(connectionData[1]));
+            } catch (Exception e) {
+                if (e instanceof IOException) {
+                    Log.d("catch", "epiasa IOException");
+                } else if (e instanceof IllegalArgumentException) {
+                    Log.d("catch", "epiasa IllegalArgumentException");
+                }
+            }
             clientInstance = Client.instance;
 
             // create make_connection request json message
@@ -95,7 +108,27 @@ public class ManualConnectionActivity extends AppCompatActivity {
         Log.d("ip input: ", ipInput.getText().toString());
         Log.d("port input: ", portInput.getText().toString());
 
-        new ConnectionTask().execute(ipString, port);
+        boolean validIpFormat = Client.isIpFormatCorrect(ipString);
+        boolean validPortFormat = Client.isPortFormatCorrect(Integer.parseInt(port));
+
+        if ( validIpFormat && validPortFormat) {
+            new ConnectionTask().execute(ipString, port);
+        } else {
+
+            String msg = "";
+
+            if (!validIpFormat) {
+                msg += "Wrong ip format!";
+            }
+
+            if (!validPortFormat) {
+                msg += "\nWrong port format!";
+            }
+
+            notificationMsg.setText(msg);
+        }
+
+
 
     }
 }

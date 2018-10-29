@@ -12,6 +12,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.regex.Pattern;
 
 public class Client {
 
@@ -25,6 +26,13 @@ public class Client {
     private static BufferedReader bufReader;
     private static Socket socket;
 
+    private static final Pattern REGEX_IP_ADDRESS
+            = Pattern.compile(
+            "((25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}|[1-9][0-9]|[1-9])\\.(25[0-5]|2[0-4]"
+                    + "[0-9]|[0-1][0-9]{2}|[1-9][0-9]|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|[0-1]"
+                    + "[0-9]{2}|[1-9][0-9]|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}"
+                    + "|[1-9][0-9]|[0-9]))");
+
     private static boolean inConnection = false;
 
     private class ClientNotInConnection extends Exception {
@@ -37,7 +45,7 @@ public class Client {
 
 
 
-    Client(String addr, int port) {
+    Client(String addr, int port) throws Exception {
         dstAddress = addr;
         dstPort = port;
         inConnection = true;
@@ -71,38 +79,28 @@ public class Client {
         Log.d("eftasa", "5");
     }
 
-    Client() {
-
-        try {
-            if (!inConnection) {
-                throw new ClientNotInConnection("Error: The client has not been connected to a server yet!");
-            }
-        } catch (ClientNotInConnection e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    private void createSocket() {
+    private void createSocket() throws Exception {
         Log.d("eftasa", "3");
         socket = null;
-        try {
-            socket = new Socket(dstAddress, dstPort);
+        socket = new Socket(dstAddress, dstPort);
 
-//            Socket socket = new Socket();
-//            socket.connect(new InetSocketAddress(dstAddress, dstPort), 5000);
-
-            Log.d("eftasa", "4");
-
-//            if (socket.isBound() == true) {
-//                Log.d("socket state", "socket is bound");
-//            } else {
-//                Log.d("socket state", "socket is not bound");
-//            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        try {
+//
+//
+////            Socket socket = new Socket();
+////            socket.connect(new InetSocketAddress(dstAddress, dstPort), 5000);
+//
+//            Log.d("eftasa", "4");
+//
+////            if (socket.isBound() == true) {
+////                Log.d("socket state", "socket is bound");
+////            } else {
+////                Log.d("socket state", "socket is not bound");
+////            }
+//
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
     }
 
     private void closeSocket() {
@@ -114,6 +112,15 @@ public class Client {
                 e.printStackTrace();
             }
         }
+    }
+
+    public static boolean isIpFormatCorrect(String ip) {
+        return ip.matches(String.valueOf(REGEX_IP_ADDRESS));
+    }
+
+    public static boolean isPortFormatCorrect(int port) {
+
+        return port >= 0 && port <= 65535;
     }
 
     public String getClientIpAddress() {
