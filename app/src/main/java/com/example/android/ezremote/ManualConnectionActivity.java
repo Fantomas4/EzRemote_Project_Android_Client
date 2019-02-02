@@ -108,14 +108,29 @@ public class ManualConnectionActivity extends AppCompatActivity {
         Log.d("ip input: ", ipInput.getText().toString());
         Log.d("port input: ", portInput.getText().toString());
 
-        boolean validIpFormat = Client.isIpFormatCorrect(ipString);
-        boolean validPortFormat = Client.isPortFormatCorrect(Integer.parseInt(port));
+        String msg = "";
 
-        if ( validIpFormat && validPortFormat) {
+        boolean validIpFormat = Client.isIpFormatCorrect(ipString);
+
+        // initialize validPortFormat to true
+        boolean validPortFormat = true;
+
+        // Check if the input can be converted to integer, otherwise catch
+        // the thrown exception and notify the user
+        try {
+            Integer.parseInt(port);
+        } catch (NumberFormatException e) {
+            validPortFormat = false;
+        }
+
+        if (validPortFormat) {
+            validPortFormat = Client.isPortFormatCorrect(Integer.parseInt(port));
+        }
+
+
+        if (validIpFormat && validPortFormat) {
             new ConnectionTask().execute(ipString, port);
         } else {
-
-            String msg = "";
 
             if (!validIpFormat) {
                 msg += "Wrong ip format!";
