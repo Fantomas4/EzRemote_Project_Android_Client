@@ -50,6 +50,25 @@
         app:layout_constraintTop_toBottomOf="@+id/textView13" />
 
     <Button
+        android:id="@+id/cancelTimerButton"
+        android:layout_width="232dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        android:text="Cancel TImer!"
+        android:textAppearance="@style/TextAppearance.AppCompat"
+        android:textSize="18sp"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.496"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/notificationMsgTextView"
+        app:layout_constraintVertical_bias="0.051" />
+
+    <Button
         android:id="@+id/setTimerButton"
         android:layout_width="232dp"
         android:layout_height="wrap_content"
@@ -282,5 +301,18 @@
         </LinearLayout>
 
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/notificationMsgTextView"
+        android:layout_width="307dp"
+        android:layout_height="130dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="8dp"
+        android:textAlignment="center"
+        android:textSize="24sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/shutdownNowButton" />
 
 </android.support.constraint.ConstraintLayout>

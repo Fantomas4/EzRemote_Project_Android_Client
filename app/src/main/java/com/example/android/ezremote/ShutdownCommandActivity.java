@@ -69,7 +69,8 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
             @Override
             public void onClick(View v) {
                 Log.d("onClick listener", "mpika1");
-                new ShutdownCommandTask().execute("timer_shutdown");
+                new ShutdownCommandTask().execute(hoursTextView.getText().toString(), minsTextView.getText().toString(),
+                        secsTextView.getText().toString(), msecsTextView.getText().toString());
             }
         });
 
@@ -79,7 +80,7 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
             @Override
             public void onClick(View v) {
                 Log.d("onClick listener", "mpika2");
-                new ShutdownCommandTask().execute("instant_shutdown");
+                new ShutdownCommandTask().execute("0", "0", "0", "0");
             }
         });
 
@@ -166,35 +167,19 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
             clientInstance = Client.instance;
 //            clientInstance = new Client("192.168.1.108", 7890);
 
-            // takes the string argument located in the 0 position of the String[] array commandType.
-            if (commandType[0].equals("instant_shutdown")) {
-                // create make_connection request json message for instant shutdown
-                Map<String, String> msg_data = new HashMap<>();
-                msg_data.put("type", "shutdown_system");
-                msg_data.put("hours", "0");
-                msg_data.put("mins", "0");
-                msg_data.put("secs", "0");
-                msg_data.put("msecs", "0");
+            // create make_connection request json message for instant shutdown
+            Map<String, String> msg_data = new HashMap<>();
+            msg_data.put("type", "shutdown_system");
+            msg_data.put("hours", commandType[0]);
+            msg_data.put("mins", commandType[1]);
+            msg_data.put("secs", commandType[2]);
+            msg_data.put("msecs", commandType[3]);
 
-                jsonObject = MessageGenerator.generateJsonObject("request", "execute_command", msg_data);
-
-                return clientInstance.sendMsgAndRecvReply(jsonObject);
-
-            } else if (commandType[0].equals("timer_shutdown")) {
-                // create make_connection request json message for instant shutdown
-                Map<String, String> msg_data = new HashMap<>();
-                msg_data.put("type", "shutdown_system");
-                msg_data.put("hours", hoursTextView.getText().toString());
-                msg_data.put("mins", minsTextView.getText().toString());
-                msg_data.put("secs", secsTextView.getText().toString());
-                msg_data.put("msecs", msecsTextView.getText().toString());
-
-                jsonObject = MessageGenerator.generateJsonObject("request", "execute_command", msg_data);
-
-
-            }
+            jsonObject = MessageGenerator.generateJsonObject("request", "execute_command", msg_data);
 
             return clientInstance.sendMsgAndRecvReply(jsonObject);
+
+
 
         }
 
