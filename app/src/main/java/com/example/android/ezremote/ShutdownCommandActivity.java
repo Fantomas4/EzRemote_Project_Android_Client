@@ -8,6 +8,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.HashMap;
@@ -34,6 +36,8 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
 
     private Button setTimerButton;
     private Button shutdownNowButton;
+
+    private TextView notificationMsgTextView;
 
 
     @Override
@@ -83,6 +87,8 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
                 new ShutdownCommandTask().execute("0", "0", "0", "0");
             }
         });
+
+        notificationMsgTextView = findViewById(R.id.notificationMsgTextView);
 
 
     }
@@ -190,6 +196,9 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
             super.onPostExecute(result);
             Log.d("Receive debug final", result);
             // MessageAnalysis.analyzeMessage(getApplicationContext(), result);
+
+
+
 
 
         }
