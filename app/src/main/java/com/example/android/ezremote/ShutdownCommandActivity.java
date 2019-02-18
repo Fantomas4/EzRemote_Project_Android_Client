@@ -175,13 +175,12 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
 
             // create make_connection request json message for instant shutdown
             Map<String, String> msg_data = new HashMap<>();
-            msg_data.put("type", "shutdown_system");
             msg_data.put("hours", commandType[0]);
             msg_data.put("mins", commandType[1]);
             msg_data.put("secs", commandType[2]);
             msg_data.put("msecs", commandType[3]);
 
-            jsonObject = MessageGenerator.generateJsonObject("request", "execute_command", msg_data);
+            jsonObject = MessageGenerator.generateJsonObject("execute_shutdown_system_command", msg_data);
 
             return clientInstance.sendMsgAndRecvReply(jsonObject);
 

@@ -10,6 +10,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -56,7 +57,7 @@ public class ManualConnectionActivity extends AppCompatActivity {
             // create make_connection request json message
             Map<String, String> msg_data = new HashMap<>();
             msg_data.put("ip", clientInstance.getClientIpAddress());
-            JSONObject jsonObject = MessageGenerator.generateJsonObject("request", "make_connection", msg_data);
+            JSONObject jsonObject = MessageGenerator.generateJsonObject("make_connection", msg_data);
 
             return clientInstance.sendMsgAndRecvReply(jsonObject);
 
@@ -68,13 +69,25 @@ public class ManualConnectionActivity extends AppCompatActivity {
             // xreiazetai?
             super.onPostExecute(reply);
             Log.d("Receive debug final", reply);
-            String analysisResult = MessageAnalysis.analyzeMessage(reply);
 
-            if (analysisResult.equals("connection_request_accepted")) {
-                // Switch to the RemoteMenuActivity screen.
-                // note: Instead of using (getApplicationContext) use YourActivity.this
-                Intent intent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
-                ManualConnectionActivity.this.startActivity(intent);
+            JSONObject jsonObject = null;
+            try {
+                jsonObject = new JSONObject(reply);
+            } catch (JSONException e) {
+                Log.e("MYAPP", "========================================================================== unexpected JSON exception", e);
+                e.printStackTrace();
+            }
+
+            try {
+                if (jsonObject.getString("status").equals("success")) {
+                    // received json message has a "success" status
+                    // Switch to the RemoteMenuActivity screen.
+                    // note: Instead of using (getApplicationContext) use YourActivity.this
+                    Intent intent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
+                    ManualConnectionActivity.this.startActivity(intent);
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
             }
 
         }
