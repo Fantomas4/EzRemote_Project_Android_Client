@@ -65,10 +65,10 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(String reply) {
-            Log.d("Receive debug prefinal", reply);
+//            Log.d("Receive debug prefinal", reply);
             // xreiazetai?
             super.onPostExecute(reply);
-            Log.d("Receive debug final", reply);
+//            Log.d("Receive debug final", reply);
 
             JSONObject jsonObject = null;
             try {

@@ -1,6 +1,8 @@
 package com.example.android.ezremote;
 
+import android.content.Intent;
 import android.os.AsyncTask;
+import android.os.CountDownTimer;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -160,10 +162,10 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
 
     }
 
-    private class ShutdownCommandTask extends AsyncTask<String, String, String> {
+    private class ShutdownCommandTask extends AsyncTask<String, String, Map<String, String>> {
 
         @Override
-        protected String doInBackground(String... commandType) {
+        protected Map<String, String> doInBackground(String... commandType) {
 
             // json object that holds the data that will be send to the server.
             JSONObject jsonObject = null;
@@ -182,19 +184,66 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
 
             jsonObject = MessageGenerator.generateJsonObject("execute_shutdown_system_command", msg_data);
 
-            return clientInstance.sendMsgAndRecvReply(jsonObject);
 
+            Map<String, String> replyAndTimerData = new HashMap<>();
+            replyAndTimerData.put("reply", clientInstance.sendMsgAndRecvReply(jsonObject));
+            replyAndTimerData.put("hours", commandType[0]);
+            replyAndTimerData.put("mins", commandType[1]);
+            replyAndTimerData.put("secs", commandType[2]);
+            replyAndTimerData.put("msecs", commandType[3]);
+
+            return replyAndTimerData;
 
 
         }
 
         @Override
-        protected void onPostExecute(String result) {
-            Log.d("Receive debug prefinal", result);
+        protected void onPostExecute(Map<String, String> replyAndTimerData) {
+            Log.d("Receive debug prefinal", replyAndTimerData.get("reply"));
             // xreiazetai?
-            super.onPostExecute(result);
-            Log.d("Receive debug final", result);
+            super.onPostExecute(replyAndTimerData);
+            Log.d("Receive debug final", replyAndTimerData.get("reply"));
             // MessageAnalysis.analyzeMessage(getApplicationContext(), result);
+
+            JSONObject jsonObject = null;
+            try {
+                jsonObject = new JSONObject(replyAndTimerData.get("reply"));
+            } catch (JSONException e) {
+                Log.e("MYAPP", "========================================================================== unexpected JSON exception", e);
+                e.printStackTrace();
+            }
+
+            try {
+                if (jsonObject.getString("status").equals("success")) {
+                    // received json message has a "success" status
+                    // Start the countdown timer according to the time data in "replyAndTimerData"
+                    // Display the "Cancel Timer" button
+
+                    // the total time of the shutdown timer the user set in milliseconds
+                    int totalTime = (Integer.parseInt(replyAndTimerData.get("hours")) * 3600000) + (Integer.parseInt(replyAndTimerData.get("mins")) * 60000) +
+                            (Integer.parseInt(replyAndTimerData.get("secs")) * 1000) + Integer.parseInt(replyAndTimerData.get("msecs"));
+
+                    // delay represents the time lost while the server prepared and sent its reply to our client
+                    int delay = 1000;
+
+                    CountDownTimer shutdownCountDownTimer = new CountDownTimer(totalTime, 1000) {
+                        @Override
+                        public void onTick(long millisUntilFinished) {
+                            notificationMsgTextView.setText("Remote computer will shutdown in: \n" + millisUntilFinished);
+
+                        }
+
+                        @Override
+                        public void onFinish() {
+                            notificationMsgTextView.setText("done!");
+                        }
+                    }.start();
+
+
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
 
 
 
