@@ -7,14 +7,13 @@ import java.util.Map;
 
 public class MessageGenerator {
 
-    public static JSONObject generateJsonObject(String msgType, String msgContent, Map<String, String> msgData) {
+    public static JSONObject generateJsonObject(String request, Map<String, String> msgData) {
 
         JSONObject jsonObject = new JSONObject();
         try {
-            jsonObject.put("msg_type", msgType);
-            jsonObject.put("msg_content", msgContent);
+            jsonObject.put("request", request);
             JSONObject msgDataJsonObj = new JSONObject(msgData);
-            jsonObject.put("msg_data", msgDataJsonObj);
+            jsonObject.put("data", msgDataJsonObj);
         } catch (JSONException e) {
             e.printStackTrace();
         }
