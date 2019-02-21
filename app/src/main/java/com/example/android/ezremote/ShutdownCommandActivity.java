@@ -40,6 +40,9 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
     private Button shutdownNowButton;
 
     private TextView notificationMsgTextView;
+    private Button cancelTimerButton;
+
+    CountDownTimer shutdownCountDownTimer;
 
 
     @Override
@@ -91,6 +94,14 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
         });
 
         notificationMsgTextView = findViewById(R.id.notificationMsgTextView);
+
+        cancelTimerButton = findViewById(R.id.cancelTimerButton);
+        cancelTimerButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                new CancelShutdownCommandTask().execute();
+            }
+        });
 
 
     }
@@ -162,6 +173,66 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
 
     }
 
+    private class CancelShutdownCommandTask extends AsyncTask<Void, String, String> {
+
+        @Override
+        protected String doInBackground(Void... voids) {
+
+            // json object that holds the data that will be send to the server.
+            JSONObject jsonObject = null;
+
+            // create a client instance that has static fields containing the info for the connection
+            // that has already been created.
+            clientInstance = Client.instance;
+//            clientInstance = new Client("192.168.1.108", 7890);
+
+            Map<String, String> msg_data = new HashMap<>();
+
+            jsonObject = MessageGenerator.generateJsonObject("cancel_shutdown_system_command", msg_data);
+
+            return clientInstance.sendMsgAndRecvReply(jsonObject);
+        }
+
+        @Override
+        protected void onPostExecute(String reply) {
+            Log.d("Receive debug prefinal", reply);
+            // xreiazetai?
+            super.onPostExecute(reply);
+            Log.d("Receive debug final", reply);
+            // MessageAnalysis.analyzeMessage(getApplicationContext(), result);
+
+            JSONObject jsonObject = null;
+            try {
+                jsonObject = new JSONObject(reply);
+            } catch (JSONException e) {
+                Log.e("MYAPP", "========================================================================== unexpected JSON exception", e);
+                e.printStackTrace();
+            }
+
+            try {
+                if (jsonObject.getString("status").equals("success")) {
+                    // server has responded that the request to cancel the shutdown command being executed
+                    // was successful
+
+                    // cancel the shutdownCountDownTimer that prints the remaining time in the notificationMsgTextView
+                    shutdownCountDownTimer.cancel();
+
+                    // notify the user by printing a message in notificationMsgTextView
+                    notificationMsgTextView.setText("Shutdown command has been canceled!");
+
+                    // re-enable the "Set timer" and "Shutdown now" buttons
+                    setTimerButton.setEnabled(true);
+                    shutdownNowButton.setEnabled(true);
+                    cancelTimerButton.setVisibility(View.GONE);
+
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
     private class ShutdownCommandTask extends AsyncTask<String, String, Map<String, String>> {
 
         @Override
@@ -215,9 +286,13 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
 
             try {
                 if (jsonObject.getString("status").equals("success")) {
-                    // received json message has a "success" status
+                    // received json message has a "success" status, meaning that the server has accepted the shutdown request successfully
                     // Start the countdown timer according to the time data in "replyAndTimerData"
-                    // Display the "Cancel Timer" button
+
+                    // Display the "Cancel Timer" button, disable the "Set timer" and "Shutdown now" buttons.
+                    setTimerButton.setEnabled(false);
+                    shutdownNowButton.setEnabled(false);
+                    cancelTimerButton.setVisibility(View.VISIBLE);
 
                     // the total time of the shutdown timer the user set in milliseconds
                     int totalTime = (Integer.parseInt(replyAndTimerData.get("hours")) * 3600000) + (Integer.parseInt(replyAndTimerData.get("mins")) * 60000) +
@@ -226,7 +301,7 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
                     // delay represents the time lost while the server prepared and sent its reply to our client
                     int delay = 1000;
 
-                    CountDownTimer shutdownCountDownTimer = new CountDownTimer(totalTime, 1000) {
+                    shutdownCountDownTimer = new CountDownTimer(totalTime, 1000) {
                         @Override
                         public void onTick(long millisUntilFinished) {
                             notificationMsgTextView.setText("Remote computer will shutdown in: \n" + millisUntilFinished);
@@ -235,7 +310,12 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
 
                         @Override
                         public void onFinish() {
-                            notificationMsgTextView.setText("done!");
+                            // update the notificationMsgTextView to inform the user that the shutdown command
+                            // has been executed, enable the "Set timer" and "Shutdown now" buttons and hide the cancelTimerButton button.
+                            notificationMsgTextView.setText("Shutdown executed!");
+                            cancelTimerButton.setVisibility(View.GONE);
+                            setTimerButton.setEnabled(true);
+                            shutdownNowButton.setEnabled(true);
                         }
                     }.start();
 
