@@ -15,7 +15,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class ShutdownCommandActivity extends AppCompatActivity implements View.OnClickListener{
 
@@ -304,8 +306,10 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
                     shutdownCountDownTimer = new CountDownTimer(totalTime, 1000) {
                         @Override
                         public void onTick(long millisUntilFinished) {
-                            notificationMsgTextView.setText("Remote computer will shutdown in: \n" + millisUntilFinished);
-
+                            notificationMsgTextView.setText(String.format(Locale.getDefault(),"Remote computer will shutdown in: \n %02d : %02d : %02d",
+                                    TimeUnit.MILLISECONDS.toHours(millisUntilFinished),
+                                    TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millisUntilFinished)),
+                                    TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished))));
                         }
 
                         @Override
