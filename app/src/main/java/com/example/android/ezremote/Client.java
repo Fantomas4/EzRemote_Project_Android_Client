@@ -11,20 +11,23 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.regex.Pattern;
 
 public class Client {
 
-    public static Client instance;
+    public static Client clientInstance;
 
-    private static String dstAddress;
-    private static int dstPort;
-    private static OutputStreamWriter outputStreamWriter;
-    private static Writer bufWriter;
-    private static InputStreamReader inputStreamReader;
-    private static BufferedReader bufReader;
-    private static Socket socket;
+    private String dstAddress;
+    private int dstPort;
+    private OutputStreamWriter outputStreamWriter;
+    private Writer bufWriter;
+    private InputStreamReader inputStreamReader;
+    private BufferedReader bufReader;
+    private Socket socket;
+    private boolean inConnection;
 
     private static final Pattern REGEX_IP_ADDRESS
             = Pattern.compile(
@@ -33,7 +36,7 @@ public class Client {
                     + "[0-9]{2}|[1-9][0-9]|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}"
                     + "|[1-9][0-9]|[0-9]))");
 
-    private static boolean inConnection = false;
+
 
     private class ClientNotInConnection extends Exception {
 
@@ -45,12 +48,31 @@ public class Client {
 
 
 
-    Client(String addr, int port) throws Exception {
-        dstAddress = addr;
-        dstPort = port;
-        inConnection = true;
+    private Client() {
+        // Client is a SINGLETON class
+        this.inConnection = false;
+    }
 
-        createSocket();
+    public static Client getInstance()
+    {
+        if (clientInstance == null)
+            clientInstance = new Client();
+
+        return clientInstance;
+    }
+
+    public void createNewConnection(String ip, int port) throws Exception {
+        this.dstAddress = ip;
+        this.dstPort = port;
+
+        try {
+            createSocket();
+            this.inConnection = true;
+        } catch (Exception e) {
+            if (e instanceof SocketTimeoutException) {
+                throw e;
+            }
+        }
 
         try {
             outputStreamWriter = new OutputStreamWriter(socket.getOutputStream(), "UTF8");
@@ -80,27 +102,14 @@ public class Client {
     }
 
     private void createSocket() throws Exception {
-        Log.d("eftasa", "3");
-        socket = null;
-        socket = new Socket(dstAddress, dstPort);
+//        Log.d("eftasa", "3");
+//        socket = null;
+//        socket = new Socket(dstAddress, dstPort);
+        this.socket = new Socket();
+        this.socket.connect(new InetSocketAddress(dstAddress, dstPort), 5000);
 
-//        try {
-//
-//
-////            Socket socket = new Socket();
-////            socket.connect(new InetSocketAddress(dstAddress, dstPort), 5000);
-//
-//            Log.d("eftasa", "4");
-//
-////            if (socket.isBound() == true) {
-////                Log.d("socket state", "socket is bound");
-////            } else {
-////                Log.d("socket state", "socket is not bound");
-////            }
-//
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+
+
     }
 
     private void closeSocket() {
@@ -129,6 +138,7 @@ public class Client {
 
         return ip;
     }
+
 
     public String sendMsgAndRecvReply(JSONObject jsonObject) {
         sendMessage(jsonObject);

@@ -13,8 +13,7 @@ import android.widget.TextView;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
-import java.net.UnknownHostException;
+import java.net.SocketTimeoutException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,32 +34,32 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
             // create a new connection to the server
 
-            // *** USED ONLY DURING APP TESTING ***
-//            Client.instance = new Client("192.168.1.103", 7890);
-//            clientInstance = Client.instance;
-
-
             // NOTE: Network activities should NEVER be put in the main thread (causes unhandled exception)
 
             // *** FOR NORMAL APPLICATION USE ***
+
+            clientInstance = Client.getInstance();
+
             try {
-                Client.instance = new Client(connectionData[0], Integer.parseInt(connectionData[1]));
+                Log.d("in", "innnnn");
+                clientInstance.createNewConnection(connectionData[0], Integer.parseInt(connectionData[1]));
+                Log.d("out", "outtttt");
+
+                // create make_connection request json message
+                Map<String, String> msg_data = new HashMap<>();
+                msg_data.put("ip", clientInstance.getClientIpAddress());
+                JSONObject jsonObject = MessageGenerator.generateJsonObject("make_connection", msg_data);
+
+                return clientInstance.sendMsgAndRecvReply(jsonObject);
+
             } catch (Exception e) {
-                if (e instanceof IOException) {
-                    Log.d("catch", "epiasa IOException");
-                } else if (e instanceof IllegalArgumentException) {
-                    Log.d("catch", "epiasa IllegalArgumentException");
+                e.printStackTrace();
+
+                if (e instanceof SocketTimeoutException) {
+                    Log.d("timeout", "SocketTimeoutException!!!!!!");
                 }
+                return "";
             }
-            clientInstance = Client.instance;
-
-            // create make_connection request json message
-            Map<String, String> msg_data = new HashMap<>();
-            msg_data.put("ip", clientInstance.getClientIpAddress());
-            JSONObject jsonObject = MessageGenerator.generateJsonObject("make_connection", msg_data);
-
-            return clientInstance.sendMsgAndRecvReply(jsonObject);
-
         }
 
         @Override
@@ -70,24 +69,31 @@ public class ManualConnectionActivity extends AppCompatActivity {
             super.onPostExecute(reply);
 //            Log.d("Receive debug final", reply);
 
-            JSONObject jsonObject = null;
-            try {
-                jsonObject = new JSONObject(reply);
-            } catch (JSONException e) {
-                Log.e("MYAPP", "========================================================================== unexpected JSON exception", e);
-                e.printStackTrace();
-            }
-
-            try {
-                if (jsonObject.getString("status").equals("success")) {
-                    // received json message has a "success" status
-                    // Switch to the RemoteMenuActivity screen.
-                    // note: Instead of using (getApplicationContext) use YourActivity.this
-                    Intent intent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
-                    ManualConnectionActivity.this.startActivity(intent);
+            if (!reply.equals("")) {
+                JSONObject jsonObject = null;
+                try {
+                    jsonObject = new JSONObject(reply);
+                } catch (JSONException e) {
+                    Log.e("MYAPP", "========================================================================== unexpected JSON exception", e);
+                    e.printStackTrace();
                 }
-            } catch (JSONException e) {
-                e.printStackTrace();
+
+                try {
+                    if (jsonObject.getString("status").equals("success")) {
+                        // received json message has a "success" status
+                        // Switch to the RemoteMenuActivity screen.
+                        // note: Instead of using (getApplicationContext) use YourActivity.this
+                        Intent intent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
+                        ManualConnectionActivity.this.startActivity(intent);
+                    } else {
+                        // received json message
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                // the result is empty so the target server was found to be unreachable
+                notificationMsg.setText("The specified server is unreachable!");
             }
 
         }
@@ -142,6 +148,7 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
 
         if (validIpFormat && validPortFormat) {
+            notificationMsg.setText("Connecting...");
             new ConnectionTask().execute(ipString, port);
         } else {
 

@@ -1,6 +1,5 @@
 package com.example.android.ezremote;
 
-import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.CountDownTimer;
 import android.support.v7.app.AppCompatActivity;
@@ -10,7 +9,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -183,9 +181,9 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
             // json object that holds the data that will be send to the server.
             JSONObject jsonObject = null;
 
-            // create a client instance that has static fields containing the info for the connection
+            // create a client clientInstance that has static fields containing the info for the connection
             // that has already been created.
-            clientInstance = Client.instance;
+            clientInstance = Client.clientInstance;
 //            clientInstance = new Client("192.168.1.108", 7890);
 
             Map<String, String> msg_data = new HashMap<>();
@@ -243,9 +241,9 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
             // json object that holds the data that will be send to the server.
             JSONObject jsonObject = null;
 
-            // create a client instance that has static fields containing the info for the connection
+            // create a client clientInstance that has static fields containing the info for the connection
             // that has already been created.
-            clientInstance = Client.instance;
+            clientInstance = Client.clientInstance;
 //            clientInstance = new Client("192.168.1.108", 7890);
 
             // create make_connection request json message for instant shutdown
