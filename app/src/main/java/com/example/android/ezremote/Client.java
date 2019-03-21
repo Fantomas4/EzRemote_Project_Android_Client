@@ -105,8 +105,14 @@ public class Client {
 //        Log.d("eftasa", "3");
 //        socket = null;
 //        socket = new Socket(dstAddress, dstPort);
-        this.socket = new Socket();
-        this.socket.connect(new InetSocketAddress(dstAddress, dstPort), 5000);
+        try {
+            this.socket = new Socket();
+            this.socket.connect(new InetSocketAddress(dstAddress, dstPort), 5000);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw(e);
+        }
 
 
 

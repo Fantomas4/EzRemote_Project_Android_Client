@@ -13,6 +13,7 @@ import android.widget.TextView;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,10 +28,10 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
     Client clientInstance;
 
-    private class ConnectionTask extends AsyncTask<String, String, String> {
+    private class ConnectionTask extends AsyncTask<String, String, HashMap<String, String>> {
 
         @Override
-        protected String doInBackground(String... connectionData) {
+        protected HashMap<String, String> doInBackground(String... connectionData) {
 
             // create a new connection to the server
 
@@ -39,6 +40,8 @@ public class ManualConnectionActivity extends AppCompatActivity {
             // *** FOR NORMAL APPLICATION USE ***
 
             clientInstance = Client.getInstance();
+
+            HashMap<String,String> executionResult = new HashMap<>();
 
             try {
                 Log.d("in", "innnnn");
@@ -50,29 +53,39 @@ public class ManualConnectionActivity extends AppCompatActivity {
                 msg_data.put("ip", clientInstance.getClientIpAddress());
                 JSONObject jsonObject = MessageGenerator.generateJsonObject("make_connection", msg_data);
 
-                return clientInstance.sendMsgAndRecvReply(jsonObject);
+                executionResult.put("STATUS", "SUCCESS");
+                executionResult.put("DATA", "clientInstance.sendMsgAndRecvReply(jsonObject);\n");
 
             } catch (Exception e) {
                 e.printStackTrace();
 
-                if (e instanceof SocketTimeoutException) {
+                if (e instanceof ConnectException) {
+                    // Server was unreachable
                     Log.d("timeout", "SocketTimeoutException!!!!!!");
+
+                    executionResult.put("STATUS", "FAILED");
+                    executionResult.put("DATA","The specified server is unreachable!" );
+
+                } else {
+                    executionResult.put("STATUS", "FAILED");
+                    executionResult.put("DATA", "An unhandled exception occured!");
                 }
-                return "";
             }
+
+            return executionResult;
         }
 
         @Override
-        protected void onPostExecute(String reply) {
+        protected void onPostExecute(HashMap<String, String> executionResult) {
 //            Log.d("Receive debug prefinal", reply);
             // xreiazetai?
-            super.onPostExecute(reply);
+//            super.onPostExecute(reply);
 //            Log.d("Receive debug final", reply);
 
-            if (!reply.equals("")) {
+            if (executionResult.get("STATUS").equals("SUCCESS")) {
                 JSONObject jsonObject = null;
                 try {
-                    jsonObject = new JSONObject(reply);
+                    jsonObject = new JSONObject(executionResult.get("DATA"));
                 } catch (JSONException e) {
                     Log.e("MYAPP", "========================================================================== unexpected JSON exception", e);
                     e.printStackTrace();
@@ -91,9 +104,9 @@ public class ManualConnectionActivity extends AppCompatActivity {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-            } else {
-                // the result is empty so the target server was found to be unreachable
-                notificationMsg.setText("The specified server is unreachable!");
+            } else if (executionResult.get("STATUS").equals("FAILED")) {
+                // an error occurred while connecting to the client, so we notify the user
+                notificationMsg.setText(executionResult.get("DATA"));
             }
 
         }
