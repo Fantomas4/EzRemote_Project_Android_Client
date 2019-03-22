@@ -53,8 +53,8 @@ public class ManualConnectionActivity extends AppCompatActivity {
                 msg_data.put("ip", clientInstance.getClientIpAddress());
                 JSONObject jsonObject = MessageGenerator.generateJsonObject("make_connection", msg_data);
 
-                executionResult.put("status", "SUCCESS");
-                executionResult.put("data", "clientInstance.sendMsgAndRecvReply(jsonObject);\n");
+                executionResult.put("connection_status", "SUCCESS");
+                executionResult.put("connection_data", clientInstance.sendMsgAndRecvReply(jsonObject));
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -63,12 +63,15 @@ public class ManualConnectionActivity extends AppCompatActivity {
                     // Server was unreachable
                     Log.d("timeout", "ConnectException!!!!!");
 
-                    executionResult.put("status", "FAILED");
-                    executionResult.put("data","The specified server is unreachable!" );
+                    executionResult.put("connection_status", "FAILED");
+                    executionResult.put("connection_data", "The specified server is unreachable!");
 
+                } else if (e instanceof SocketTimeoutException) {
+                    executionResult.put("connection_status", "FAILED");
+                    executionResult.put("connection_data", "Connection timed out!");
                 } else {
-                    executionResult.put("status", "FAILED");
-                    executionResult.put("data", "An unhandled exception occurred!");
+                    executionResult.put("connection_status", "FAILED");
+                    executionResult.put("connection_data", "An unhandled exception occurred!");
                 }
             }
 
@@ -82,10 +85,10 @@ public class ManualConnectionActivity extends AppCompatActivity {
 //            super.onPostExecute(reply);
 //            Log.d("Receive debug final", reply);
 
-            if (executionResult.get("status").equals("SUCCESS")) {
+            if (executionResult.get("connection_status").equals("SUCCESS")) {
                 JSONObject jsonObject = null;
                 try {
-                    jsonObject = new JSONObject(executionResult.get("data"));
+                    jsonObject = new JSONObject(executionResult.get("connection_data"));
                 } catch (JSONException e) {
                     Log.e("MYAPP", "========================================================================== unexpected JSON exception", e);
                     e.printStackTrace();
@@ -98,8 +101,9 @@ public class ManualConnectionActivity extends AppCompatActivity {
                         // note: Instead of using (getApplicationContext) use YourActivity.this
                         Intent intent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
                         ManualConnectionActivity.this.startActivity(intent);
-                    } else {
+                    } else if (jsonObject.getString("status").equals("error")){
                         // received json message
+                        notificationMsg.setText(jsonObject.getJSONObject("data").getString("error_message"));
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -108,11 +112,8 @@ public class ManualConnectionActivity extends AppCompatActivity {
                 // an error occurred while connecting to the client, so we notify the user
                 notificationMsg.setText(executionResult.get("data"));
             }
-
         }
-
     }
-
 
 
     @Override
@@ -175,8 +176,5 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
             notificationMsg.setText(msg);
         }
-
-
-
     }
 }
