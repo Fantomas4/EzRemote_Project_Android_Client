@@ -53,22 +53,22 @@ public class ManualConnectionActivity extends AppCompatActivity {
                 msg_data.put("ip", clientInstance.getClientIpAddress());
                 JSONObject jsonObject = MessageGenerator.generateJsonObject("make_connection", msg_data);
 
-                executionResult.put("STATUS", "SUCCESS");
-                executionResult.put("DATA", "clientInstance.sendMsgAndRecvReply(jsonObject);\n");
+                executionResult.put("status", "SUCCESS");
+                executionResult.put("data", "clientInstance.sendMsgAndRecvReply(jsonObject);\n");
 
             } catch (Exception e) {
                 e.printStackTrace();
 
                 if (e instanceof ConnectException) {
                     // Server was unreachable
-                    Log.d("timeout", "SocketTimeoutException!!!!!!");
+                    Log.d("timeout", "ConnectException!!!!!");
 
-                    executionResult.put("STATUS", "FAILED");
-                    executionResult.put("DATA","The specified server is unreachable!" );
+                    executionResult.put("status", "FAILED");
+                    executionResult.put("data","The specified server is unreachable!" );
 
                 } else {
-                    executionResult.put("STATUS", "FAILED");
-                    executionResult.put("DATA", "An unhandled exception occured!");
+                    executionResult.put("status", "FAILED");
+                    executionResult.put("data", "An unhandled exception occurred!");
                 }
             }
 
@@ -82,10 +82,10 @@ public class ManualConnectionActivity extends AppCompatActivity {
 //            super.onPostExecute(reply);
 //            Log.d("Receive debug final", reply);
 
-            if (executionResult.get("STATUS").equals("SUCCESS")) {
+            if (executionResult.get("status").equals("SUCCESS")) {
                 JSONObject jsonObject = null;
                 try {
-                    jsonObject = new JSONObject(executionResult.get("DATA"));
+                    jsonObject = new JSONObject(executionResult.get("data"));
                 } catch (JSONException e) {
                     Log.e("MYAPP", "========================================================================== unexpected JSON exception", e);
                     e.printStackTrace();
@@ -104,9 +104,9 @@ public class ManualConnectionActivity extends AppCompatActivity {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-            } else if (executionResult.get("STATUS").equals("FAILED")) {
+            } else if (executionResult.get("status").equals("FAILED")) {
                 // an error occurred while connecting to the client, so we notify the user
-                notificationMsg.setText(executionResult.get("DATA"));
+                notificationMsg.setText(executionResult.get("data"));
             }
 
         }

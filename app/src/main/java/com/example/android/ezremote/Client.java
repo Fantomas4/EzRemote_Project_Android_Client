@@ -65,14 +65,16 @@ public class Client {
         this.dstAddress = ip;
         this.dstPort = port;
 
-        try {
-            createSocket();
-            this.inConnection = true;
-        } catch (Exception e) {
-            if (e instanceof SocketTimeoutException) {
-                throw e;
-            }
-        }
+//        try {
+//            createSocket();
+//            this.inConnection = true;
+//        } catch (Exception e) {
+//            throw e;
+//        }
+
+
+        createSocket();
+        this.inConnection = true;
 
         try {
             outputStreamWriter = new OutputStreamWriter(socket.getOutputStream(), "UTF8");
@@ -111,7 +113,7 @@ public class Client {
 
         } catch (Exception e) {
             e.printStackTrace();
-            throw(e);
+            throw e;
         }
 
 
