@@ -283,16 +283,16 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
             // xreiazetai?
             super.onPostExecute(replyAndTimerData);
 
-            JSONObject jsonObject = null;
+            JSONObject jsonReply = null;
             try {
-                jsonObject = new JSONObject(replyAndTimerData.get("reply"));
+                jsonReply = new JSONObject(replyAndTimerData.get("reply"));
             } catch (JSONException e) {
                 Log.e("MYAPP", "========================================================================== unexpected JSON exception", e);
                 e.printStackTrace();
             }
 
             try {
-                if (jsonObject.getString("status").equals("success")) {
+                if (jsonReply.getString("status").equals("SUCCESS")) {
                     // received json message has a "success" status, meaning that the server has accepted the shutdown request successfully
                     // Start the countdown timer according to the time data in "replyAndTimerData"
 
