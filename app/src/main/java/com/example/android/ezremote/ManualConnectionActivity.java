@@ -28,6 +28,25 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
     Client clientInstance;
 
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_manual_connection);
+        ipInput = findViewById(R.id.ipEditText);
+        portInput = findViewById(R.id.portEditText);
+        notificationMsg = findViewById(R.id.notificationMsgTextView);
+        connectButton = findViewById(R.id.connect_button);
+        connectButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                connect();
+            }
+        });
+
+    }
+
+
     private class ConnectionTask extends AsyncTask<String, String, HashMap<String, String>> {
 
         @Override
@@ -50,8 +69,8 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
                 // create make_connection request json message
                 Map<String, String> msg_data = new HashMap<>();
-                msg_data.put("ip", clientInstance.getClientIpAddress());
-                JSONObject jsonObject = MessageGenerator.generateJsonObject("make_connection", msg_data);
+                msg_data.put("client_ip", clientInstance.getClientIpAddress());
+                JSONObject jsonObject = MessageGenerator.generateJsonObject("INITIALIZE_NEW_CONNECTION", msg_data);
 
                 executionResult.put("connection_status", "SUCCESS");
                 executionResult.put("connection_data", clientInstance.sendMsgAndRecvReply(jsonObject));
@@ -63,14 +82,14 @@ public class ManualConnectionActivity extends AppCompatActivity {
                     // Server was unreachable
                     Log.d("timeout", "ConnectException!!!!!");
 
-                    executionResult.put("connection_status", "FAILED");
+                    executionResult.put("connection_status", "ERROR");
                     executionResult.put("connection_data", "The specified server is unreachable!");
 
                 } else if (e instanceof SocketTimeoutException) {
-                    executionResult.put("connection_status", "FAILED");
+                    executionResult.put("connection_status", "ERROR");
                     executionResult.put("connection_data", "Connection timed out!");
                 } else {
-                    executionResult.put("connection_status", "FAILED");
+                    executionResult.put("connection_status", "ERROR");
                     executionResult.put("connection_data", "An unhandled exception occurred!");
                 }
             }
@@ -80,10 +99,6 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(HashMap<String, String> executionResult) {
-//            Log.d("Receive debug prefinal", reply);
-            // xreiazetai?
-//            super.onPostExecute(reply);
-//            Log.d("Receive debug final", reply);
 
             if (executionResult.get("connection_status").equals("SUCCESS")) {
                 JSONObject jsonObject = null;
@@ -95,43 +110,26 @@ public class ManualConnectionActivity extends AppCompatActivity {
                 }
 
                 try {
-                    if (jsonObject.getString("status").equals("success")) {
+                    if (jsonObject.getString("status").equals("SUCCESS")) {
                         // received json message has a "success" status
                         // Switch to the RemoteMenuActivity screen.
                         // note: Instead of using (getApplicationContext) use YourActivity.this
                         Intent intent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
                         ManualConnectionActivity.this.startActivity(intent);
-                    } else if (jsonObject.getString("status").equals("error")){
+                    } else if (jsonObject.getString("status").equals("ERROR")){
                         // received json message
                         notificationMsg.setText(jsonObject.getJSONObject("data").getString("error_message"));
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-            } else if (executionResult.get("status").equals("FAILED")) {
+            } else if (executionResult.get("status").equals("ERROR")) {
                 // an error occurred while connecting to the client, so we notify the user
                 notificationMsg.setText(executionResult.get("data"));
             }
         }
     }
 
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_manual_connection);
-        ipInput = (EditText)findViewById(R.id.ipEditText);
-        portInput = (EditText)findViewById(R.id.portEditText);
-        notificationMsg = (TextView)findViewById(R.id.notificationMsgTextView);
-        connectButton = (Button)findViewById(R.id.connect_button);
-        connectButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                connect();
-            }
-        });
-
-    }
 
     private void connect() {
 
