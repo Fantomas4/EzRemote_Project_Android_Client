@@ -15,7 +15,7 @@ public class RemoteMenuActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_remote_menu);
 
-        shutdownCommandButton = (Button) findViewById(R.id.shutdown_command_button);
+        shutdownCommandButton = findViewById(R.id.shutdown_command_button);
         shutdownCommandButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

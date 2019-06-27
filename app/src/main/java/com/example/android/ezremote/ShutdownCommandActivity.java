@@ -1,6 +1,5 @@
 package com.example.android.ezremote;
 
-import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.CountDownTimer;
 import android.support.v7.app.AppCompatActivity;
@@ -10,7 +9,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -183,36 +181,33 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
             // json object that holds the data that will be send to the server.
             JSONObject jsonObject = null;
 
-            // create a client instance that has static fields containing the info for the connection
+            // create a client clientInstance that has static fields containing the info for the connection
             // that has already been created.
-            clientInstance = Client.instance;
+            clientInstance = Client.clientInstance;
 //            clientInstance = new Client("192.168.1.108", 7890);
 
             Map<String, String> msg_data = new HashMap<>();
 
-            jsonObject = MessageGenerator.generateJsonObject("cancel_shutdown_system_command", msg_data);
+            jsonObject = MessageGenerator.generateJsonObject("CANCEL_SHUTDOWN_COMMAND", msg_data);
 
             return clientInstance.sendMsgAndRecvReply(jsonObject);
         }
 
         @Override
         protected void onPostExecute(String reply) {
-            Log.d("Receive debug prefinal", reply);
             // xreiazetai?
             super.onPostExecute(reply);
-            Log.d("Receive debug final", reply);
-            // MessageAnalysis.analyzeMessage(getApplicationContext(), result);
 
-            JSONObject jsonObject = null;
+            JSONObject jsonReply = null;
             try {
-                jsonObject = new JSONObject(reply);
+                jsonReply = new JSONObject(reply);
             } catch (JSONException e) {
                 Log.e("MYAPP", "========================================================================== unexpected JSON exception", e);
                 e.printStackTrace();
             }
 
             try {
-                if (jsonObject.getString("status").equals("success")) {
+                if (jsonReply.getString("status").equals("SUCCESS")) {
                     // server has responded that the request to cancel the shutdown command being executed
                     // was successful
 
@@ -227,12 +222,27 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
                     shutdownNowButton.setEnabled(true);
                     cancelTimerButton.setVisibility(View.GONE);
 
+                } else if (jsonReply.getString("status").equals("FAIL")) {
+                    // notify the user by printing a message in notificationMsgTextView
+                    notificationMsgTextView.setText(jsonReply.getString("fail_message"));
+
+                    // re-enable the "Set timer" and "Shutdown now" buttons
+                    setTimerButton.setEnabled(true);
+                    shutdownNowButton.setEnabled(true);
+                    cancelTimerButton.setVisibility(View.GONE);
+                } else if (jsonReply.getString("status").equals("ERROR")) {
+                    // notify the user by printing a message in notificationMsgTextView
+                    notificationMsgTextView.setText(jsonReply.getString("error_message"));
+
+                    // re-enable the "Set timer" and "Shutdown now" buttons
+                    setTimerButton.setEnabled(true);
+                    shutdownNowButton.setEnabled(true);
+                    cancelTimerButton.setVisibility(View.GONE);
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
-
     }
 
     private class ShutdownCommandTask extends AsyncTask<String, String, Map<String, String>> {
@@ -243,9 +253,9 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
             // json object that holds the data that will be send to the server.
             JSONObject jsonObject = null;
 
-            // create a client instance that has static fields containing the info for the connection
+            // create a client clientInstance that has static fields containing the info for the connection
             // that has already been created.
-            clientInstance = Client.instance;
+            clientInstance = Client.clientInstance;
 //            clientInstance = new Client("192.168.1.108", 7890);
 
             // create make_connection request json message for instant shutdown
@@ -255,7 +265,7 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
             msg_data.put("secs", commandType[2]);
             msg_data.put("msecs", commandType[3]);
 
-            jsonObject = MessageGenerator.generateJsonObject("execute_shutdown_system_command", msg_data);
+            jsonObject = MessageGenerator.generateJsonObject("EXECUTE_SHUTDOWN_COMMAND", msg_data);
 
 
             Map<String, String> replyAndTimerData = new HashMap<>();
@@ -266,28 +276,23 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
             replyAndTimerData.put("msecs", commandType[3]);
 
             return replyAndTimerData;
-
-
         }
 
         @Override
         protected void onPostExecute(Map<String, String> replyAndTimerData) {
-            Log.d("Receive debug prefinal", replyAndTimerData.get("reply"));
             // xreiazetai?
             super.onPostExecute(replyAndTimerData);
-            Log.d("Receive debug final", replyAndTimerData.get("reply"));
-            // MessageAnalysis.analyzeMessage(getApplicationContext(), result);
 
-            JSONObject jsonObject = null;
+            JSONObject jsonReply = null;
             try {
-                jsonObject = new JSONObject(replyAndTimerData.get("reply"));
+                jsonReply = new JSONObject(replyAndTimerData.get("reply"));
             } catch (JSONException e) {
                 Log.e("MYAPP", "========================================================================== unexpected JSON exception", e);
                 e.printStackTrace();
             }
 
             try {
-                if (jsonObject.getString("status").equals("success")) {
+                if (jsonReply.getString("status").equals("SUCCESS")) {
                     // received json message has a "success" status, meaning that the server has accepted the shutdown request successfully
                     // Start the countdown timer according to the time data in "replyAndTimerData"
 
@@ -322,20 +327,10 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
                             shutdownNowButton.setEnabled(true);
                         }
                     }.start();
-
-
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-
-
-
-
-
         }
-
     }
-
-
 }
