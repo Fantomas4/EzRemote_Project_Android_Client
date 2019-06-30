@@ -1,5 +1,9 @@
 package com.example.android.ezremote;
 
+import android.app.IntentService;
+import android.content.Intent;
+import android.os.Bundle;
+import android.support.v4.app.JobIntentService;
 import android.util.Log;
 
 import org.json.JSONObject;
@@ -10,15 +14,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.regex.Pattern;
 
-public class Client {
-
-    public static Client clientInstance;
+public class ClientService extends JobIntentService {
 
     private String dstAddress;
     private int dstPort;
@@ -37,6 +40,46 @@ public class Client {
                     + "|[1-9][0-9]|[0-9]))");
 
 
+    public ClientService() {
+        this.inConnection = false;
+    }
+
+    @Override
+    protected void onHandleWork(Intent workIntent) {
+        // Gets data from the incoming Intent
+        Bundle intentExtras = workIntent.getExtras();
+
+        // Do work here, based on the contents of intentExtras
+        if (intentExtras != null) {
+            String request = intentExtras.getString("activity_request");
+
+            switch (request) {
+                case "START_CLIENT":
+                    try {
+                        createNewConnection(intentExtras.getString("remote_ip"), Integer.parseInt(intentExtras.getString("remote_port")));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+
+                        if (e instanceof ConnectException) {
+                            // Server was unreachable
+                            Log.d("timeout", "ConnectException!!!!!");
+
+                            executionResult.put("connection_status", "ERROR");
+                            executionResult.put("connection_data", "The specified server is unreachable!");
+
+                        } else if (e instanceof SocketTimeoutException) {
+                            executionResult.put("connection_status", "ERROR");
+                            executionResult.put("connection_data", "Connection timed out!");
+                        } else {
+                            executionResult.put("connection_status", "ERROR");
+                            executionResult.put("connection_data", "An unhandled exception occurred!");
+                        }
+                    }
+            }
+
+
+        }
+    }
 
     private class ClientNotInConnection extends Exception {
 
@@ -44,21 +87,6 @@ public class Client {
             super(message);
         }
 
-    }
-
-
-
-    private Client() {
-        // Client is a SINGLETON class
-        this.inConnection = false;
-    }
-
-    public static Client getInstance()
-    {
-        if (clientInstance == null)
-            clientInstance = new Client();
-
-        return clientInstance;
     }
 
     public void createNewConnection(String ip, int port) throws Exception {
@@ -241,5 +269,4 @@ public class Client {
 
         return finalMsg;
     }
-
 }

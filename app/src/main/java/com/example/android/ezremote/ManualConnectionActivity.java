@@ -1,7 +1,6 @@
 package com.example.android.ezremote;
 
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -18,6 +17,8 @@ import java.net.SocketTimeoutException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.security.AccessController.getContext;
+
 public class ManualConnectionActivity extends AppCompatActivity {
 
 
@@ -25,8 +26,8 @@ public class ManualConnectionActivity extends AppCompatActivity {
     EditText portInput;
     TextView notificationMsg;
     Button connectButton;
+    final static int CLIENT_JOB_ID = 1000;;
 
-    Client clientInstance;
 
 
     @Override
@@ -43,93 +44,7 @@ public class ManualConnectionActivity extends AppCompatActivity {
                 connect();
             }
         });
-
     }
-
-
-    private class ConnectionTask extends AsyncTask<String, String, HashMap<String, String>> {
-
-        @Override
-        protected HashMap<String, String> doInBackground(String... connectionData) {
-
-            // create a new connection to the server
-
-            // NOTE: Network activities should NEVER be put in the main thread (causes unhandled exception)
-
-            // *** FOR NORMAL APPLICATION USE ***
-
-            clientInstance = Client.getInstance();
-
-            HashMap<String,String> executionResult = new HashMap<>();
-
-            try {
-                Log.d("in", "innnnn");
-                clientInstance.createNewConnection(connectionData[0], Integer.parseInt(connectionData[1]));
-                Log.d("out", "outtttt");
-
-                // create make_connection request json message
-                Map<String, String> msg_data = new HashMap<>();
-                msg_data.put("client_ip", clientInstance.getClientIpAddress());
-                JSONObject jsonObject = MessageGenerator.generateJsonObject("INITIALIZE_NEW_CONNECTION", msg_data);
-
-                executionResult.put("connection_status", "SUCCESS");
-                executionResult.put("connection_data", clientInstance.sendMsgAndRecvReply(jsonObject));
-
-            } catch (Exception e) {
-                e.printStackTrace();
-
-                if (e instanceof ConnectException) {
-                    // Server was unreachable
-                    Log.d("timeout", "ConnectException!!!!!");
-
-                    executionResult.put("connection_status", "ERROR");
-                    executionResult.put("connection_data", "The specified server is unreachable!");
-
-                } else if (e instanceof SocketTimeoutException) {
-                    executionResult.put("connection_status", "ERROR");
-                    executionResult.put("connection_data", "Connection timed out!");
-                } else {
-                    executionResult.put("connection_status", "ERROR");
-                    executionResult.put("connection_data", "An unhandled exception occurred!");
-                }
-            }
-
-            return executionResult;
-        }
-
-        @Override
-        protected void onPostExecute(HashMap<String, String> executionResult) {
-
-            if (executionResult.get("connection_status").equals("SUCCESS")) {
-                JSONObject jsonObject = null;
-                try {
-                    jsonObject = new JSONObject(executionResult.get("connection_data"));
-                } catch (JSONException e) {
-                    Log.e("MYAPP", "========================================================================== unexpected JSON exception", e);
-                    e.printStackTrace();
-                }
-
-                try {
-                    if (jsonObject.getString("status").equals("SUCCESS")) {
-                        // received json message has a "success" status
-                        // Switch to the RemoteMenuActivity screen.
-                        // note: Instead of using (getApplicationContext) use YourActivity.this
-                        Intent intent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
-                        ManualConnectionActivity.this.startActivity(intent);
-                    } else if (jsonObject.getString("status").equals("ERROR")){
-                        // received json message
-                        notificationMsg.setText(jsonObject.getJSONObject("data").getString("error_message"));
-                    }
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            } else if (executionResult.get("status").equals("ERROR")) {
-                // an error occurred while connecting to the client, so we notify the user
-                notificationMsg.setText(executionResult.get("data"));
-            }
-        }
-    }
-
 
     private void connect() {
 
@@ -141,7 +56,7 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
         String msg = "";
 
-        boolean validIpFormat = Client.isIpFormatCorrect(ipString);
+        boolean validIpFormat = ClientService.isIpFormatCorrect(ipString);
 
         // initialize validPortFormat to true
         boolean validPortFormat = true;
@@ -155,13 +70,26 @@ public class ManualConnectionActivity extends AppCompatActivity {
         }
 
         if (validPortFormat) {
-            validPortFormat = Client.isPortFormatCorrect(Integer.parseInt(port));
+            validPortFormat = ClientService.isPortFormatCorrect(Integer.parseInt(port));
         }
 
 
         if (validIpFormat && validPortFormat) {
             notificationMsg.setText("Connecting...");
-            new ConnectionTask().execute(ipString, port);
+
+            // Initialize Client Service
+            /*
+             * Creates a new Intent to start the ClientService
+             * JobIntentService. Passes a URI in the
+             * Intent's "data" field.
+             */
+            Intent serviceIntent = new Intent();
+            serviceIntent.putExtra("activity_request", "START_CLIENT");
+            serviceIntent.putExtra("remote_ip", ipString);
+            serviceIntent.putExtra("remote_port", port);
+
+            // Starts the JobIntentService
+            ClientService.enqueueWork(getApplicationContext(), ClientService.class, CLIENT_JOB_ID, serviceIntent);
         } else {
 
             if (!validIpFormat) {
