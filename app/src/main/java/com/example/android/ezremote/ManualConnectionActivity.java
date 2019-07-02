@@ -1,6 +1,10 @@
 package com.example.android.ezremote;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -27,8 +31,20 @@ public class ManualConnectionActivity extends AppCompatActivity {
     TextView notificationMsg;
     Button connectButton;
     final static int CLIENT_JOB_ID = 1000;;
+    static ConnectionStatusReceiver connectionStatusReceiver;
 
+    // Broadcast receiver for receiving status updates from the IntentService.
+    private class ConnectionStatusReceiver extends BroadcastReceiver
+    {
+        // Called when the BroadcastReceiver gets an Intent it's registered to receive
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            /*
+             * Handle Intents here.
+             */
 
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +60,16 @@ public class ManualConnectionActivity extends AppCompatActivity {
                 connect();
             }
         });
+
+        // Initialize the ConnectionStatusReceiver which is the BroadcastReceiver used to
+        // receive status updates from the IntentService
+        connectionStatusReceiver = new ConnectionStatusReceiver();
+
+        // Register to receive messages.
+        // We are registering an observer (mMessageReceiver) to receive Intents
+        // with actions named "custom-event-name".
+        LocalBroadcastManager.getInstance(this).registerReceiver(connectionStatusReceiver,
+                new IntentFilter("connection_status"));
     }
 
     private void connect() {

@@ -4,6 +4,7 @@ import android.app.IntentService;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.JobIntentService;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import org.json.JSONObject;
@@ -19,6 +20,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.HashMap;
 import java.util.regex.Pattern;
 
 public class ClientService extends JobIntentService {
@@ -51,6 +53,8 @@ public class ClientService extends JobIntentService {
 
         // Do work here, based on the contents of intentExtras
         if (intentExtras != null) {
+            Log.d("sender", "Broadcasting message");
+            Intent replyIntent = new Intent("connection_status");
             String request = intentExtras.getString("activity_request");
 
             switch (request) {
@@ -64,20 +68,22 @@ public class ClientService extends JobIntentService {
                             // Server was unreachable
                             Log.d("timeout", "ConnectException!!!!!");
 
-                            executionResult.put("connection_status", "ERROR");
-                            executionResult.put("connection_data", "The specified server is unreachable!");
+                            replyIntent.putExtra("status", "ERROR");
+                            replyIntent.putExtra("data", "The specified server is unreachable!");
 
                         } else if (e instanceof SocketTimeoutException) {
-                            executionResult.put("connection_status", "ERROR");
-                            executionResult.put("connection_data", "Connection timed out!");
+                            replyIntent.putExtra("status", "ERROR");
+                            replyIntent.putExtra("data", "Connection timed out!");
                         } else {
-                            executionResult.put("connection_status", "ERROR");
-                            executionResult.put("connection_data", "An unhandled exception occurred!");
+                            replyIntent.putExtra("status", "ERROR");
+                            replyIntent.putExtra("data", "An unhandled exception occurred!");
                         }
                     }
+                    // Send intent to activity's BroadcastReceiver
+                    LocalBroadcastManager.getInstance(this).sendBroadcast(replyIntent);
+
+                    break;
             }
-
-
         }
     }
 
