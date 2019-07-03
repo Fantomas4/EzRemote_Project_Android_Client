@@ -44,18 +44,31 @@ public class ManualConnectionActivity extends AppCompatActivity {
             Log.d("receiver", "Got message: " + connectionStatus + " " + connectionData);
 
             switch (connectionStatus) {
-                case "SUCCESS":
+                case "CONNECTION_INITIALIZATION_SUCCESS":
                     // Switch to the RemoteMenuActivity screen.
                     // note: Instead of using (getApplicationContext) use YourActivity.this
                     Intent newActivityIntent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
                     ManualConnectionActivity.this.startActivity(newActivityIntent);
+
+                    // Create a JSON message containing the request type and request data that the Client Service
+                    // will be sending to the target Server
+                    Map<String, String> msg_data = new HashMap<>();
+                    msg_data.put("client_ip", ClientService.getClientIpAddress());
+                    JSONObject jsonData = MessageGenerator.generateJsonObject("INITIALIZE_NEW_CONNECTION", msg_data);
+
+                    // Request the Client Service to send the request to the server (connection initialization request)
+                    Intent serviceIntent = new Intent();
+                    serviceIntent.putExtra("activity_request","SEND_REQUEST_TO_SERVER");
+                    // Convert JSON to String in order to use it with putExtra
+                    serviceIntent.putExtra("json_data", jsonData.toString());
+                    ClientService.enqueueWork(getApplicationContext(), ClientService.class, CLIENT_JOB_ID, serviceIntent);
                     break;
 
-                case "ERROR":
+                case "CONNECTION_INITIALIZATION_ERROR":
                     notificationMsg.setText(connectionData);
                     break;
 
-                case "FAIL":
+                case "CONNECTION_INITIALIZATION_FAIL":
                     notificationMsg.setText(connectionData);
                     break;
             }
@@ -115,23 +128,17 @@ public class ManualConnectionActivity extends AppCompatActivity {
             // Initialize Client Service
             /*
              * Creates a new Intent to start the ClientService
-             * JobIntentService. Passes a URI in the
-             * Intent's "data" field.
+             * JobIntentService.
              */
+
+            // Ask the Client Service to initialize the connection to the specified target Server
             Intent serviceIntent = new Intent();
             serviceIntent.putExtra("activity_request", "START_CLIENT");
             serviceIntent.putExtra("remote_ip", ipString);
             serviceIntent.putExtra("remote_port", port);
 
-            // Starts the Client JobIntentService
+            // Starts the Client JobIntentService with the connection initialization request
             ClientService.enqueueWork(getApplicationContext(), ClientService.class, CLIENT_JOB_ID, serviceIntent);
-
-            // Create an INITIALIZE_NEW_CONNECTION request json message
-            Map<String, String> msg_data = new HashMap<>();
-            msg_data.put("client_ip", ClientService.getClientIpAddress());
-            JSONObject jsonObject = MessageGenerator.generateJsonObject("INITIALIZE_NEW_CONNECTION", msg_data);
-
-
         } else {
 
             if (!validIpFormat) {

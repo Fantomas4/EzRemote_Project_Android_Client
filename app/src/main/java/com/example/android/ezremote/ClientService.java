@@ -7,6 +7,7 @@ import android.support.v4.app.JobIntentService;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -54,14 +55,24 @@ public class ClientService extends JobIntentService {
         // Do work here, based on the contents of intentExtras
         if (intentExtras != null) {
             Log.d("sender", "Broadcasting message");
-            Intent replyIntent = new Intent("connection_status");
             String request = intentExtras.getString("activity_request");
+
+            JSONObject jsonData = null;
+            if(workIntent.hasExtra("json")) {
+                try {
+                    jsonData = new JSONObject(workIntent.getStringExtra("json"));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            Intent replyIntent = new Intent("connection_status");
 
             switch (request) {
                 case "START_CLIENT":
                     try {
                         createNewConnection(intentExtras.getString("remote_ip"), Integer.parseInt(intentExtras.getString("remote_port")));
-                        replyIntent.putExtra("status", "SUCCESS");
+                        replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_SUCCESS");
                     } catch (Exception e) {
                         e.printStackTrace();
 
@@ -69,14 +80,14 @@ public class ClientService extends JobIntentService {
                             // Server was unreachable
                             Log.d("timeout", "ConnectException!!!!!");
 
-                            replyIntent.putExtra("status", "ERROR");
+                            replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_ERROR");
                             replyIntent.putExtra("data", "The specified server is unreachable!");
 
                         } else if (e instanceof SocketTimeoutException) {
-                            replyIntent.putExtra("status", "ERROR");
+                            replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_ERROR");
                             replyIntent.putExtra("data", "Connection timed out!");
                         } else {
-                            replyIntent.putExtra("status", "ERROR");
+                            replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_ERROR");
                             replyIntent.putExtra("data", "An unhandled exception occurred!");
                         }
                     }
@@ -84,6 +95,10 @@ public class ClientService extends JobIntentService {
                     LocalBroadcastManager.getInstance(this).sendBroadcast(replyIntent);
 
                     break;
+
+                case "SEND_REQUEST_TO_SERVER":
+                    sendMsgAndRecvReply(jsonData);
+
             }
         }
     }
@@ -96,7 +111,7 @@ public class ClientService extends JobIntentService {
 
     }
 
-    public void createNewConnection(String ip, int port) throws Exception {
+    private void createNewConnection(String ip, int port) throws Exception {
         this.dstAddress = ip;
         this.dstPort = port;
 
@@ -164,7 +179,7 @@ public class ClientService extends JobIntentService {
     }
 
 
-    public String sendMsgAndRecvReply(JSONObject jsonObject) {
+    private String sendMsgAndRecvReply(JSONObject jsonObject) {
         sendMessage(jsonObject);
 
         String receivedMessage = receiveMessage();
@@ -172,7 +187,7 @@ public class ClientService extends JobIntentService {
         return receivedMessage;
     }
 
-    public void sendMessage(JSONObject jsonObject) {
+    private void sendMessage(JSONObject jsonObject) {
 
         String message = jsonObject.toString();
 //        Log.d("writer", "The message1 is: " + message);
