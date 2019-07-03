@@ -31,7 +31,7 @@ public class ClientService extends JobIntentService {
     private Writer bufWriter;
     private InputStreamReader inputStreamReader;
     private BufferedReader bufReader;
-    private Socket socket;
+    private static Socket socket;
     private boolean inConnection;
 
     private static final Pattern REGEX_IP_ADDRESS
@@ -61,6 +61,7 @@ public class ClientService extends JobIntentService {
                 case "START_CLIENT":
                     try {
                         createNewConnection(intentExtras.getString("remote_ip"), Integer.parseInt(intentExtras.getString("remote_port")));
+                        replyIntent.putExtra("status", "SUCCESS");
                     } catch (Exception e) {
                         e.printStackTrace();
 
@@ -99,14 +100,6 @@ public class ClientService extends JobIntentService {
         this.dstAddress = ip;
         this.dstPort = port;
 
-//        try {
-//            createSocket();
-//            this.inConnection = true;
-//        } catch (Exception e) {
-//            throw e;
-//        }
-
-
         createSocket();
         this.inConnection = true;
 
@@ -117,10 +110,7 @@ public class ClientService extends JobIntentService {
         }
 
         // Use encoding of your choice
-        Log.d("writer 1-1", "writer 1-1");
         bufWriter = new BufferedWriter(outputStreamWriter);
-        Log.d("writer 1-2", "writer 1-2");
-
 
         try {
             inputStreamReader = new InputStreamReader(socket.getInputStream(), "UTF-8");
@@ -128,19 +118,11 @@ public class ClientService extends JobIntentService {
             e.printStackTrace();
         }
 
-        Log.d("reader 1-1", "reader 1-1");
         bufReader = new BufferedReader(inputStreamReader);
-
-        Log.d("reader 1-2", "reader 1-2");
-
-
-        Log.d("eftasa", "5");
     }
 
     private void createSocket() throws Exception {
-//        Log.d("eftasa", "3");
-//        socket = null;
-//        socket = new Socket(dstAddress, dstPort);
+
         try {
             this.socket = new Socket();
             this.socket.connect(new InetSocketAddress(dstAddress, dstPort), 5000);
@@ -174,11 +156,11 @@ public class ClientService extends JobIntentService {
         return port >= 0 && port <= 65535;
     }
 
-    public String getClientIpAddress() {
+    public static String getClientIpAddress() {
         InetAddress addr = socket.getInetAddress();
-        String ip = (addr != null) ? addr.getHostAddress() : "*";
 
-        return ip;
+        return (addr != null) ? addr.getHostAddress() : "*";
+
     }
 
 
@@ -202,11 +184,9 @@ public class ClientService extends JobIntentService {
 
         // append and flush in logical chunks
         try {
-            Log.d("writer 1-3", "writer 1-3");
             Log.d("writer", "The message2 is: " + message);
             bufWriter.append(message);
             bufWriter.flush();
-            Log.d("writer 1-4", "writer 1-4");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -231,8 +211,6 @@ public class ClientService extends JobIntentService {
             while ((recvSize = bufReader.read(cbuf)) != -1) {
                 Log.d("in.read loop", "diavasa " + recvSize + "chars");
                 //offset = recvSize;
-                Log.d("in.read loop", "thesi 2");
-
 
                 // for debugging only
                 int counter = 0;
@@ -267,11 +245,6 @@ public class ClientService extends JobIntentService {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
-        Log.d("Receive debug", "in receive_msg client func END");
-
-        Log.d("reader 1-3", "reader 1-3");
 
         return finalMsg;
     }

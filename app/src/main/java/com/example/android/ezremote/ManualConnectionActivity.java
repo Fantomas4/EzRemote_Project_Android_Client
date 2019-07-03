@@ -9,19 +9,14 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.net.ConnectException;
-import java.net.SocketTimeoutException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.security.AccessController.getContext;
 
 public class ManualConnectionActivity extends AppCompatActivity {
 
@@ -29,9 +24,9 @@ public class ManualConnectionActivity extends AppCompatActivity {
     EditText ipInput;
     EditText portInput;
     TextView notificationMsg;
-    Button connectButton;
-    final static int CLIENT_JOB_ID = 1000;;
+    final static int CLIENT_JOB_ID = 1000;
     static ConnectionStatusReceiver connectionStatusReceiver;
+
 
     // Broadcast receiver for receiving status updates from the IntentService.
     private class ConnectionStatusReceiver extends BroadcastReceiver
@@ -43,6 +38,27 @@ public class ManualConnectionActivity extends AppCompatActivity {
              * Handle Intents here.
              */
 
+            // Get extra data included in the Intent
+            String connectionStatus = intent.getStringExtra("status");
+            String connectionData = intent.getStringExtra("data");
+            Log.d("receiver", "Got message: " + connectionStatus + " " + connectionData);
+
+            switch (connectionStatus) {
+                case "SUCCESS":
+                    // Switch to the RemoteMenuActivity screen.
+                    // note: Instead of using (getApplicationContext) use YourActivity.this
+                    Intent newActivityIntent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
+                    ManualConnectionActivity.this.startActivity(newActivityIntent);
+                    break;
+
+                case "ERROR":
+                    notificationMsg.setText(connectionData);
+                    break;
+
+                case "FAIL":
+                    notificationMsg.setText(connectionData);
+                    break;
+            }
         }
     }
 
@@ -53,26 +69,19 @@ public class ManualConnectionActivity extends AppCompatActivity {
         ipInput = findViewById(R.id.ipEditText);
         portInput = findViewById(R.id.portEditText);
         notificationMsg = findViewById(R.id.notificationMsgTextView);
-        connectButton = findViewById(R.id.connect_button);
-        connectButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                connect();
-            }
-        });
 
         // Initialize the ConnectionStatusReceiver which is the BroadcastReceiver used to
         // receive status updates from the IntentService
         connectionStatusReceiver = new ConnectionStatusReceiver();
 
         // Register to receive messages.
-        // We are registering an observer (mMessageReceiver) to receive Intents
+        // We are registering an observer (connectionStatusReceiver) to receive Intents
         // with actions named "custom-event-name".
         LocalBroadcastManager.getInstance(this).registerReceiver(connectionStatusReceiver,
                 new IntentFilter("connection_status"));
     }
 
-    private void connect() {
+    public void onClickConnectButton(View v) {
 
         String ipString = ipInput.getText().toString();
         String port = portInput.getText().toString();
@@ -114,8 +123,15 @@ public class ManualConnectionActivity extends AppCompatActivity {
             serviceIntent.putExtra("remote_ip", ipString);
             serviceIntent.putExtra("remote_port", port);
 
-            // Starts the JobIntentService
+            // Starts the Client JobIntentService
             ClientService.enqueueWork(getApplicationContext(), ClientService.class, CLIENT_JOB_ID, serviceIntent);
+
+            // Create an INITIALIZE_NEW_CONNECTION request json message
+            Map<String, String> msg_data = new HashMap<>();
+            msg_data.put("client_ip", ClientService.getClientIpAddress());
+            JSONObject jsonObject = MessageGenerator.generateJsonObject("INITIALIZE_NEW_CONNECTION", msg_data);
+
+
         } else {
 
             if (!validIpFormat) {
