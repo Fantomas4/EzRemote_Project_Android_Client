@@ -1,8 +1,11 @@
 package com.example.android.ezremote;
 
 import android.app.IntentService;
+import android.app.Service;
 import android.content.Intent;
+import android.os.Binder;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v4.app.JobIntentService;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
@@ -24,7 +27,7 @@ import java.net.SocketTimeoutException;
 import java.util.HashMap;
 import java.util.regex.Pattern;
 
-public class ClientService extends JobIntentService {
+public class ClientService extends Service {
 
     private String dstAddress;
     private int dstPort;
@@ -34,6 +37,9 @@ public class ClientService extends JobIntentService {
     private BufferedReader bufReader;
     private static Socket socket;
     private boolean inConnection;
+    // Binder given to clients
+    private final IBinder binder;
+
 
     private static final Pattern REGEX_IP_ADDRESS
             = Pattern.compile(
@@ -45,63 +51,80 @@ public class ClientService extends JobIntentService {
 
     public ClientService() {
         this.inConnection = false;
+        binder = new LocalBinder();
+    }
+
+    /*
+     * Class used for the client Binder.  Because we know this service always
+     * runs in the same process as its clients, we don't need to deal with IPC.
+     */
+    public class LocalBinder extends Binder {
+        ClientService getService() {
+            // Return this instance of LocalService so clients can call public methods
+            return ClientService.this;
+        }
     }
 
     @Override
-    protected void onHandleWork(Intent workIntent) {
-        // Gets data from the incoming Intent
-        Bundle intentExtras = workIntent.getExtras();
-
-        // Do work here, based on the contents of intentExtras
-        if (intentExtras != null) {
-            Log.d("sender", "Broadcasting message");
-            String request = intentExtras.getString("activity_request");
-
-            JSONObject jsonData = null;
-            if(workIntent.hasExtra("json")) {
-                try {
-                    jsonData = new JSONObject(workIntent.getStringExtra("json"));
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            Intent replyIntent = new Intent("connection_status");
-
-            switch (request) {
-                case "START_CLIENT":
-                    try {
-                        createNewConnection(intentExtras.getString("remote_ip"), Integer.parseInt(intentExtras.getString("remote_port")));
-                        replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_SUCCESS");
-                    } catch (Exception e) {
-                        e.printStackTrace();
-
-                        if (e instanceof ConnectException) {
-                            // Server was unreachable
-                            Log.d("timeout", "ConnectException!!!!!");
-
-                            replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_ERROR");
-                            replyIntent.putExtra("data", "The specified server is unreachable!");
-
-                        } else if (e instanceof SocketTimeoutException) {
-                            replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_ERROR");
-                            replyIntent.putExtra("data", "Connection timed out!");
-                        } else {
-                            replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_ERROR");
-                            replyIntent.putExtra("data", "An unhandled exception occurred!");
-                        }
-                    }
-                    // Send intent to activity's BroadcastReceiver
-                    LocalBroadcastManager.getInstance(this).sendBroadcast(replyIntent);
-
-                    break;
-
-                case "SEND_REQUEST_TO_SERVER":
-                    sendMsgAndRecvReply(jsonData);
-
-            }
-        }
+    public IBinder onBind(Intent intent) {
+        return binder;
     }
+
+//    @Override
+//    protected void onHandleWork(Intent workIntent) {
+//        // Gets data from the incoming Intent
+//        Bundle intentExtras = workIntent.getExtras();
+//
+//        // Do work here, based on the contents of intentExtras
+//        if (intentExtras != null) {
+//            Log.d("sender", "Broadcasting message");
+//            String request = intentExtras.getString("activity_request");
+//
+//            JSONObject jsonData = null;
+//            if(workIntent.hasExtra("json")) {
+//                try {
+//                    jsonData = new JSONObject(workIntent.getStringExtra("json"));
+//                } catch (JSONException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//
+//            Intent replyIntent = new Intent("connection_status");
+//
+//            switch (request) {
+//                case "START_CLIENT":
+//                    try {
+//                        createNewConnection(intentExtras.getString("remote_ip"), Integer.parseInt(intentExtras.getString("remote_port")));
+//                        replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_SUCCESS");
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//
+//                        if (e instanceof ConnectException) {
+//                            // Server was unreachable
+//                            Log.d("timeout", "ConnectException!!!!!");
+//
+//                            replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_ERROR");
+//                            replyIntent.putExtra("data", "The specified server is unreachable!");
+//
+//                        } else if (e instanceof SocketTimeoutException) {
+//                            replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_ERROR");
+//                            replyIntent.putExtra("data", "Connection timed out!");
+//                        } else {
+//                            replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_ERROR");
+//                            replyIntent.putExtra("data", "An unhandled exception occurred!");
+//                        }
+//                    }
+//                    // Send intent to activity's BroadcastReceiver
+//                    LocalBroadcastManager.getInstance(this).sendBroadcast(replyIntent);
+//
+//                    break;
+//
+//                case "SEND_REQUEST_TO_SERVER":
+//                    sendMsgAndRecvReply(jsonData);
+//
+//            }
+//        }
+//    }
 
     private class ClientNotInConnection extends Exception {
 
@@ -111,19 +134,21 @@ public class ClientService extends JobIntentService {
 
     }
 
-    private void createNewConnection(String ip, int port) throws Exception {
+    public boolean isInConnection() {
+        return  inConnection;
+    }
+
+    public void createNewConnection(String ip, int port) throws Exception {
         this.dstAddress = ip;
         this.dstPort = port;
 
         createSocket();
-        this.inConnection = true;
 
         try {
             outputStreamWriter = new OutputStreamWriter(socket.getOutputStream(), "UTF8");
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         // Use encoding of your choice
         bufWriter = new BufferedWriter(outputStreamWriter);
 
@@ -132,7 +157,6 @@ public class ClientService extends JobIntentService {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         bufReader = new BufferedReader(inputStreamReader);
     }
 
@@ -141,6 +165,7 @@ public class ClientService extends JobIntentService {
         try {
             this.socket = new Socket();
             this.socket.connect(new InetSocketAddress(dstAddress, dstPort), 5000);
+            this.inConnection = true;
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -155,6 +180,7 @@ public class ClientService extends JobIntentService {
         if (socket != null) {
             try {
                 socket.close();
+                this.inConnection = false;
             } catch (IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -179,7 +205,7 @@ public class ClientService extends JobIntentService {
     }
 
 
-    private String sendMsgAndRecvReply(JSONObject jsonObject) {
+    public String sendMsgAndRecvReply(JSONObject jsonObject) {
         sendMessage(jsonObject);
 
         String receivedMessage = receiveMessage();
