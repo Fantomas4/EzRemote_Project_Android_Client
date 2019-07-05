@@ -48,6 +48,7 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
         // Bind to LocalService
         Intent intent = new Intent(this, ClientService.class);
+        startService(intent);
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
     }
 
