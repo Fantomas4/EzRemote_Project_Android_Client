@@ -22,7 +22,7 @@
         <activity android:name=".ManualConnectionActivity" />
         <activity android:name=".SettingsActivity" />
         <activity android:name=".RemoteMenuActivity" />
-        <!--<activity android:name=".ShutdownCommandActivity"></activity>-->
+        <activity android:name=".ShutdownCommandActivity"></activity>
 
         <service android:name=".ClientService"
             android:permission="android.permission.BIND_JOB_SERVICE"

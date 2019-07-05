@@ -1,16 +1,11 @@
 package com.example.android.ezremote;
 
-import android.app.IntentService;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
-import android.os.Bundle;
 import android.os.IBinder;
-import android.support.v4.app.JobIntentService;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -19,12 +14,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
-import java.util.HashMap;
 import java.util.regex.Pattern;
 
 public class ClientService extends Service {

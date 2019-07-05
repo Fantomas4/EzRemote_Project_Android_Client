@@ -14,7 +14,7 @@ public class RemoteMenuActivity extends AppCompatActivity {
     }
 
     public void onClickShutdownComputerButton(View v) {
-//        Intent shutdownCommandActivityIntent = new Intent(this, ShutdownCommandActivity.class);
-//        startActivity(shutdownCommandActivityIntent);
+        Intent shutdownCommandActivityIntent = new Intent(this, ShutdownCommandActivity.class);
+        startActivity(shutdownCommandActivityIntent);
     }
 }
