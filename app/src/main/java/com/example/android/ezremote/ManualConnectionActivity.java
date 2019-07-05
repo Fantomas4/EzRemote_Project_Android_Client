@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.AsyncTask;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -12,6 +13,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.net.ConnectException;
@@ -78,6 +80,96 @@ public class ManualConnectionActivity extends AppCompatActivity {
         }
     };
 
+
+    // Class used for the parallel execution of the new connection task
+    class NewConnectionTask extends AsyncTask<Void, Void, Object> {
+
+        private String ipString;
+        private int portNumber;
+
+        public NewConnectionTask(String ipString, int portNumber) {
+            this.ipString = ipString;
+            this.portNumber = portNumber;
+        }
+
+        @Override
+        protected Object doInBackground(Void... voids) {
+
+            Object executionResult;
+
+            // Ask the Client Service to establish a socket connection to the specified target Server
+            try {
+
+                clientService.createNewConnection(ipString, portNumber);
+
+                // If no exception occurs, the connection to the target Server has been
+                // established, so we now bind our application to the Server by sending an INITIALIZE_NEW_CONNECTION
+                // request (described in the application's communication protocol)
+
+                // Create the INITIALIZE_NEW_CONNECTION request's json message
+                Map<String, String> msg_data = new HashMap<>();
+                msg_data.put("client_ip", clientService.getClientIpAddress());
+                JSONObject jsonData = MessageGenerator.generateJsonObject("INITIALIZE_NEW_CONNECTION", msg_data);
+
+                executionResult = new JSONObject(clientService.sendMsgAndRecvReply(jsonData));
+
+            } catch (Exception e) {
+                executionResult = e;
+
+            }
+
+            return executionResult;
+
+        }
+
+        @Override
+        protected void onPostExecute(Object resultObject) {
+            if (resultObject instanceof JSONObject) {
+                // We received a JSON object, so we know that the execution
+                // that occurred in doInBackground did not throw any exceptions
+
+                JSONObject jsonResponse = (JSONObject)resultObject;
+
+                try {
+                    if (jsonResponse.getString("status").equals("SUCCESS")) {
+                        // The Server has responded with a SUCCESS status, so we know that we have successfully bind our
+                        // Client Application to the Server and the Server has granted us access permission
+
+                        // Now we are ready to switch to the next activity
+                        Intent newActivityIntent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
+                        ManualConnectionActivity.this.startActivity(newActivityIntent);
+                    } else {
+                        // The Server has responded with a FAIL or ERROR status, so we notify the user and exit
+                        notificationMsg.setText(jsonResponse.getString("data"));
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+            } else if (resultObject instanceof Exception) {
+                // We received an Exception object, so we know that the execution
+                // that occurred in doInBackground threw an exception
+                Exception  e = (Exception)resultObject;
+
+                e.printStackTrace();
+
+                if (e instanceof ConnectException) {
+                    // Server was unreachable
+                    Log.d("timeout", "ConnectException!!!!!");
+                    notificationMsg.setText("The specified server is unreachable!");
+
+                } else if (e instanceof SocketTimeoutException) {
+                    notificationMsg.setText("Connection timed out!");
+
+                } else {
+                    notificationMsg.setText("An unhandled exception occurred!");
+
+                }
+            }
+        }
+    }
+
+
     public void onConnectButtonClick(View v) {
 
         String ipString = ipInput.getText().toString();
@@ -109,66 +201,9 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
             notificationMsg.setText("Connecting...");
 
-            // Class used for the parallel execution of the new connection task
-            class NewConnectionTask extends Thread {
 
-                private String ipString;
-                private int portNumber;
 
-                public NewConnectionTask(String ipString, int portNumber) {
-                    this.ipString = ipString;
-                    this.portNumber = portNumber;
-                }
-
-                @Override
-                public void run() {
-                    try {
-                        // Ask the Client Service to establish a socket connection to the specified target Server
-                        clientService.createNewConnection(ipString, portNumber);
-
-                        // If no exception occurs, the connection to the target Server has been
-                        // established, so we now bind our application to the Server by sending an INITIALIZE_NEW_CONNECTION
-                        // request (described in the application's communication protocol)
-
-                        // Create the INITIALIZE_NEW_CONNECTION request's json message
-                        Map<String, String> msg_data = new HashMap<>();
-                        msg_data.put("client_ip", clientService.getClientIpAddress());
-                        JSONObject jsonData = MessageGenerator.generateJsonObject("INITIALIZE_NEW_CONNECTION", msg_data);
-
-                        JSONObject jsonResponse = new JSONObject(clientService.sendMsgAndRecvReply(jsonData));
-
-                        if (jsonResponse.getString("status").equals("SUCCESS")) {
-                            // The Server has responded with a SUCCESS status, so we know that we have successfully bind our
-                            // Client Application to the Server and the Server has granted us access permission
-
-                            // Now we are ready to switch to the next activity
-                            Intent newActivityIntent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
-                            ManualConnectionActivity.this.startActivity(newActivityIntent);
-                        } else {
-                            // The Server has responded with a FAIL or ERROR status, so we notify the user and exit
-                            notificationMsg.setText(jsonResponse.getString("data"));
-                        }
-
-                    } catch (Exception e) {
-                        e.printStackTrace();
-
-                        if (e instanceof ConnectException) {
-                            // Server was unreachable
-                            Log.d("timeout", "ConnectException!!!!!");
-                            notificationMsg.setText("The specified server is unreachable!");
-
-                        } else if (e instanceof SocketTimeoutException) {
-                            notificationMsg.setText("Connection timed out!");
-
-                        } else {
-                            notificationMsg.setText("An unhandled exception occurred!");
-
-                        }
-                    }
-                }
-            }
-
-            new NewConnectionTask(ipString,portNumber).start();
+            new NewConnectionTask(ipString,portNumber).execute();
 
             } else{
 
