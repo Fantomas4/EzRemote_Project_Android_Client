@@ -1,5 +1,9 @@
 package com.example.android.ezremote;
 
+import android.app.Service;
+import android.content.Intent;
+import android.os.Binder;
+import android.os.IBinder;
 import android.util.Log;
 
 import org.json.JSONObject;
@@ -13,12 +17,9 @@ import java.io.Writer;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.util.regex.Pattern;
 
-public class Client {
-
-    public static Client clientInstance;
+public class ClientService extends Service {
 
     private String dstAddress;
     private int dstPort;
@@ -26,8 +27,11 @@ public class Client {
     private Writer bufWriter;
     private InputStreamReader inputStreamReader;
     private BufferedReader bufReader;
-    private Socket socket;
+    private static Socket socket;
     private boolean inConnection;
+    // Binder given to clients
+    private final IBinder binder;
+
 
     private static final Pattern REGEX_IP_ADDRESS
             = Pattern.compile(
@@ -37,6 +41,82 @@ public class Client {
                     + "|[1-9][0-9]|[0-9]))");
 
 
+    public ClientService() {
+        this.inConnection = false;
+        binder = new LocalBinder();
+    }
+
+    /*
+     * Class used for the client Binder.  Because we know this service always
+     * runs in the same process as its clients, we don't need to deal with IPC.
+     */
+    public class LocalBinder extends Binder {
+        ClientService getService() {
+            // Return this instance of LocalService so clients can call public methods
+            return ClientService.this;
+        }
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return binder;
+    }
+
+//    @Override
+//    protected void onHandleWork(Intent workIntent) {
+//        // Gets data from the incoming Intent
+//        Bundle intentExtras = workIntent.getExtras();
+//
+//        // Do work here, based on the contents of intentExtras
+//        if (intentExtras != null) {
+//            Log.d("sender", "Broadcasting message");
+//            String request = intentExtras.getString("activity_request");
+//
+//            JSONObject jsonData = null;
+//            if(workIntent.hasExtra("json")) {
+//                try {
+//                    jsonData = new JSONObject(workIntent.getStringExtra("json"));
+//                } catch (JSONException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//
+//            Intent replyIntent = new Intent("connection_status");
+//
+//            switch (request) {
+//                case "START_CLIENT":
+//                    try {
+//                        createNewConnection(intentExtras.getString("remote_ip"), Integer.parseInt(intentExtras.getString("remote_port")));
+//                        replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_SUCCESS");
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//
+//                        if (e instanceof ConnectException) {
+//                            // Server was unreachable
+//                            Log.d("timeout", "ConnectException!!!!!");
+//
+//                            replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_ERROR");
+//                            replyIntent.putExtra("data", "The specified server is unreachable!");
+//
+//                        } else if (e instanceof SocketTimeoutException) {
+//                            replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_ERROR");
+//                            replyIntent.putExtra("data", "Connection timed out!");
+//                        } else {
+//                            replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_ERROR");
+//                            replyIntent.putExtra("data", "An unhandled exception occurred!");
+//                        }
+//                    }
+//                    // Send intent to activity's BroadcastReceiver
+//                    LocalBroadcastManager.getInstance(this).sendBroadcast(replyIntent);
+//
+//                    break;
+//
+//                case "SEND_REQUEST_TO_SERVER":
+//                    sendMsgAndRecvReply(jsonData);
+//
+//            }
+//        }
+//    }
 
     private class ClientNotInConnection extends Exception {
 
@@ -46,70 +126,38 @@ public class Client {
 
     }
 
-
-
-    private Client() {
-        // Client is a SINGLETON class
-        this.inConnection = false;
-    }
-
-    public static Client getInstance()
-    {
-        if (clientInstance == null)
-            clientInstance = new Client();
-
-        return clientInstance;
+    public boolean isInConnection() {
+        return  inConnection;
     }
 
     public void createNewConnection(String ip, int port) throws Exception {
         this.dstAddress = ip;
         this.dstPort = port;
 
-//        try {
-//            createSocket();
-//            this.inConnection = true;
-//        } catch (Exception e) {
-//            throw e;
-//        }
-
-
         createSocket();
-        this.inConnection = true;
 
         try {
             outputStreamWriter = new OutputStreamWriter(socket.getOutputStream(), "UTF8");
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         // Use encoding of your choice
-        Log.d("writer 1-1", "writer 1-1");
         bufWriter = new BufferedWriter(outputStreamWriter);
-        Log.d("writer 1-2", "writer 1-2");
-
 
         try {
             inputStreamReader = new InputStreamReader(socket.getInputStream(), "UTF-8");
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        Log.d("reader 1-1", "reader 1-1");
         bufReader = new BufferedReader(inputStreamReader);
-
-        Log.d("reader 1-2", "reader 1-2");
-
-
-        Log.d("eftasa", "5");
     }
 
     private void createSocket() throws Exception {
-//        Log.d("eftasa", "3");
-//        socket = null;
-//        socket = new Socket(dstAddress, dstPort);
+
         try {
             this.socket = new Socket();
             this.socket.connect(new InetSocketAddress(dstAddress, dstPort), 5000);
+            this.inConnection = true;
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -124,6 +172,7 @@ public class Client {
         if (socket != null) {
             try {
                 socket.close();
+                this.inConnection = false;
             } catch (IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -140,11 +189,11 @@ public class Client {
         return port >= 0 && port <= 65535;
     }
 
-    public String getClientIpAddress() {
+    public static String getClientIpAddress() {
         InetAddress addr = socket.getInetAddress();
-        String ip = (addr != null) ? addr.getHostAddress() : "*";
 
-        return ip;
+        return (addr != null) ? addr.getHostAddress() : "*";
+
     }
 
 
@@ -156,7 +205,7 @@ public class Client {
         return receivedMessage;
     }
 
-    public void sendMessage(JSONObject jsonObject) {
+    private void sendMessage(JSONObject jsonObject) {
 
         String message = jsonObject.toString();
 //        Log.d("writer", "The message1 is: " + message);
@@ -168,11 +217,9 @@ public class Client {
 
         // append and flush in logical chunks
         try {
-            Log.d("writer 1-3", "writer 1-3");
             Log.d("writer", "The message2 is: " + message);
             bufWriter.append(message);
             bufWriter.flush();
-            Log.d("writer 1-4", "writer 1-4");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -197,8 +244,6 @@ public class Client {
             while ((recvSize = bufReader.read(cbuf)) != -1) {
                 Log.d("in.read loop", "diavasa " + recvSize + "chars");
                 //offset = recvSize;
-                Log.d("in.read loop", "thesi 2");
-
 
                 // for debugging only
                 int counter = 0;
@@ -234,12 +279,6 @@ public class Client {
             e.printStackTrace();
         }
 
-
-        Log.d("Receive debug", "in receive_msg client func END");
-
-        Log.d("reader 1-3", "reader 1-3");
-
         return finalMsg;
     }
-
 }

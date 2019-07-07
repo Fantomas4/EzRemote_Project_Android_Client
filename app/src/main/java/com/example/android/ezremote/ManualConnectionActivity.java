@@ -1,12 +1,15 @@
 package com.example.android.ezremote;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.AsyncTask;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -18,15 +21,16 @@ import java.net.SocketTimeoutException;
 import java.util.HashMap;
 import java.util.Map;
 
+
 public class ManualConnectionActivity extends AppCompatActivity {
 
 
-    EditText ipInput;
-    EditText portInput;
-    TextView notificationMsg;
-    Button connectButton;
+    private EditText ipInput;
+    private EditText portInput;
+    private TextView notificationMsg;
 
-    Client clientInstance;
+    private ClientService clientService;
+    private boolean isBound = false;
 
 
     @Override
@@ -36,143 +40,182 @@ public class ManualConnectionActivity extends AppCompatActivity {
         ipInput = findViewById(R.id.ipEditText);
         portInput = findViewById(R.id.portEditText);
         notificationMsg = findViewById(R.id.notificationMsgTextView);
-        connectButton = findViewById(R.id.connect_button);
-        connectButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                connect();
-            }
-        });
 
     }
 
+    @Override
+    protected void onStart() {
 
-    private class ConnectionTask extends AsyncTask<String, String, HashMap<String, String>> {
+        super.onStart();
+
+        // Bind to LocalService
+        Intent intent = new Intent(this, ClientService.class);
+        startService(intent);
+        bindService(intent, connection, Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        unbindService(connection);
+        isBound = false;
+    }
+
+    /**
+     * Defines callbacks for service binding, passed to bindService()
+     */
+    private ServiceConnection connection = new ServiceConnection() {
 
         @Override
-        protected HashMap<String, String> doInBackground(String... connectionData) {
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            // We've bound to ClientService, cast the IBinder and get ClientService instance
+            ClientService.LocalBinder binder = (ClientService.LocalBinder) service;
+            clientService = binder.getService();
+            isBound = true;
+        }
 
-            // create a new connection to the server
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            isBound = false;
+        }
+    };
 
-            // NOTE: Network activities should NEVER be put in the main thread (causes unhandled exception)
 
-            // *** FOR NORMAL APPLICATION USE ***
+    // Class used for the parallel execution of the new connection task
+    class NewConnectionTask extends AsyncTask<Void, Void, Object> {
 
-            clientInstance = Client.getInstance();
+        private String ipString;
+        private int portNumber;
 
-            HashMap<String,String> executionResult = new HashMap<>();
+        public NewConnectionTask(String ipString, int portNumber) {
+            this.ipString = ipString;
+            this.portNumber = portNumber;
+        }
 
+        @Override
+        protected Object doInBackground(Void... voids) {
+
+            Object executionResult;
+
+            // Ask the Client Service to establish a socket connection to the specified target Server
             try {
-                Log.d("in", "innnnn");
-                clientInstance.createNewConnection(connectionData[0], Integer.parseInt(connectionData[1]));
-                Log.d("out", "outtttt");
 
-                // create make_connection request json message
+                clientService.createNewConnection(ipString, portNumber);
+
+                // If no exception occurs, the connection to the target Server has been
+                // established, so we now bind our application to the Server by sending an INITIALIZE_NEW_CONNECTION
+                // request (described in the application's communication protocol)
+
+                // Create the INITIALIZE_NEW_CONNECTION request's json message
                 Map<String, String> msg_data = new HashMap<>();
-                msg_data.put("client_ip", clientInstance.getClientIpAddress());
-                JSONObject jsonObject = MessageGenerator.generateJsonObject("INITIALIZE_NEW_CONNECTION", msg_data);
+                msg_data.put("client_ip", clientService.getClientIpAddress());
+                JSONObject jsonData = MessageGenerator.generateJsonObject("INITIALIZE_NEW_CONNECTION", msg_data);
 
-                executionResult.put("connection_status", "SUCCESS");
-                executionResult.put("connection_data", clientInstance.sendMsgAndRecvReply(jsonObject));
+                executionResult = new JSONObject(clientService.sendMsgAndRecvReply(jsonData));
 
             } catch (Exception e) {
+                executionResult = e;
+
+            }
+
+            return executionResult;
+
+        }
+
+        @Override
+        protected void onPostExecute(Object resultObject) {
+            if (resultObject instanceof JSONObject) {
+                // We received a JSON object, so we know that the execution
+                // that occurred in doInBackground did not throw any exceptions
+
+                JSONObject jsonResponse = (JSONObject)resultObject;
+
+                try {
+                    if (jsonResponse.getString("status").equals("SUCCESS")) {
+                        // The Server has responded with a SUCCESS status, so we know that we have successfully bind our
+                        // Client Application to the Server and the Server has granted us access permission
+
+                        // Now we are ready to switch to the next activity
+                        Intent newActivityIntent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
+                        ManualConnectionActivity.this.startActivity(newActivityIntent);
+                    } else {
+                        // The Server has responded with a FAIL or ERROR status, so we notify the user and exit
+                        notificationMsg.setText(jsonResponse.getString("data"));
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+            } else if (resultObject instanceof Exception) {
+                // We received an Exception object, so we know that the execution
+                // that occurred in doInBackground threw an exception
+                Exception  e = (Exception)resultObject;
+
                 e.printStackTrace();
 
                 if (e instanceof ConnectException) {
                     // Server was unreachable
                     Log.d("timeout", "ConnectException!!!!!");
-
-                    executionResult.put("connection_status", "ERROR");
-                    executionResult.put("connection_data", "The specified server is unreachable!");
+                    notificationMsg.setText("The specified server is unreachable!");
 
                 } else if (e instanceof SocketTimeoutException) {
-                    executionResult.put("connection_status", "ERROR");
-                    executionResult.put("connection_data", "Connection timed out!");
+                    notificationMsg.setText("Connection timed out!");
+
                 } else {
-                    executionResult.put("connection_status", "ERROR");
-                    executionResult.put("connection_data", "An unhandled exception occurred!");
+                    notificationMsg.setText("An unhandled exception occurred!");
+
                 }
-            }
-
-            return executionResult;
-        }
-
-        @Override
-        protected void onPostExecute(HashMap<String, String> executionResult) {
-
-            if (executionResult.get("connection_status").equals("SUCCESS")) {
-                JSONObject jsonObject = null;
-                try {
-                    jsonObject = new JSONObject(executionResult.get("connection_data"));
-                } catch (JSONException e) {
-                    Log.e("MYAPP", "========================================================================== unexpected JSON exception", e);
-                    e.printStackTrace();
-                }
-
-                try {
-                    if (jsonObject.getString("status").equals("SUCCESS")) {
-                        // received json message has a "success" status
-                        // Switch to the RemoteMenuActivity screen.
-                        // note: Instead of using (getApplicationContext) use YourActivity.this
-                        Intent intent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
-                        ManualConnectionActivity.this.startActivity(intent);
-                    } else if (jsonObject.getString("status").equals("ERROR")){
-                        // received json message
-                        notificationMsg.setText(jsonObject.getJSONObject("data").getString("error_message"));
-                    }
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            } else if (executionResult.get("status").equals("ERROR")) {
-                // an error occurred while connecting to the client, so we notify the user
-                notificationMsg.setText(executionResult.get("data"));
             }
         }
     }
 
 
-    private void connect() {
+    public void onConnectButtonClick(View v) {
 
         String ipString = ipInput.getText().toString();
-        String port = portInput.getText().toString();
+        String portString = portInput.getText().toString();
+        int portNumber = 0;
 
         Log.d("ip input: ", ipInput.getText().toString());
         Log.d("port input: ", portInput.getText().toString());
 
         String msg = "";
 
-        boolean validIpFormat = Client.isIpFormatCorrect(ipString);
-
-        // initialize validPortFormat to true
+        // Check if the given ip string has a correct format
+        boolean validIpFormat = ClientService.isIpFormatCorrect(ipString);
+        // Initialize validPortFormat to true
         boolean validPortFormat = true;
 
-        // Check if the input can be converted to integer, otherwise catch
+        // Check if the given port string can be converted to integer, otherwise catch
         // the thrown exception and notify the user
         try {
-            Integer.parseInt(port);
+            portNumber = Integer.parseInt(portString);
+            // Check if the given port integer has a correct format
+            validPortFormat = ClientService.isPortFormatCorrect(portNumber);
         } catch (NumberFormatException e) {
             validPortFormat = false;
         }
 
-        if (validPortFormat) {
-            validPortFormat = Client.isPortFormatCorrect(Integer.parseInt(port));
-        }
-
 
         if (validIpFormat && validPortFormat) {
+
             notificationMsg.setText("Connecting...");
-            new ConnectionTask().execute(ipString, port);
-        } else {
 
-            if (!validIpFormat) {
-                msg += "Wrong ip format!";
+
+
+            new NewConnectionTask(ipString,portNumber).execute();
+
+            } else{
+
+                if (!validIpFormat) {
+                    msg += "Wrong ip format!";
+                }
+
+                if (!validPortFormat) {
+                    msg += "\nWrong port format!";
+                }
+
+                notificationMsg.setText(msg);
             }
-
-            if (!validPortFormat) {
-                msg += "\nWrong port format!";
-            }
-
-            notificationMsg.setText(msg);
         }
     }
-}
