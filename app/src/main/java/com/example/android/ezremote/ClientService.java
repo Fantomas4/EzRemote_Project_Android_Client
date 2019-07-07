@@ -6,6 +6,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -17,17 +18,18 @@ import java.io.Writer;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.regex.Pattern;
 
 public class ClientService extends Service {
 
     private String dstAddress;
     private int dstPort;
-    private OutputStreamWriter outputStreamWriter;
-    private Writer bufWriter;
-    private InputStreamReader inputStreamReader;
-    private BufferedReader bufReader;
-    private static Socket socket;
+    private OutputStreamWriter outputStreamWriter = null;
+    private Writer bufWriter = null;
+    private InputStreamReader inputStreamReader = null;
+    private BufferedReader bufReader = null;
+    private static Socket socket = null;
     private boolean inConnection;
     // Binder given to clients
     private final IBinder binder;
@@ -62,62 +64,6 @@ public class ClientService extends Service {
         return binder;
     }
 
-//    @Override
-//    protected void onHandleWork(Intent workIntent) {
-//        // Gets data from the incoming Intent
-//        Bundle intentExtras = workIntent.getExtras();
-//
-//        // Do work here, based on the contents of intentExtras
-//        if (intentExtras != null) {
-//            Log.d("sender", "Broadcasting message");
-//            String request = intentExtras.getString("activity_request");
-//
-//            JSONObject jsonData = null;
-//            if(workIntent.hasExtra("json")) {
-//                try {
-//                    jsonData = new JSONObject(workIntent.getStringExtra("json"));
-//                } catch (JSONException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//
-//            Intent replyIntent = new Intent("connection_status");
-//
-//            switch (request) {
-//                case "START_CLIENT":
-//                    try {
-//                        createNewConnection(intentExtras.getString("remote_ip"), Integer.parseInt(intentExtras.getString("remote_port")));
-//                        replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_SUCCESS");
-//                    } catch (Exception e) {
-//                        e.printStackTrace();
-//
-//                        if (e instanceof ConnectException) {
-//                            // Server was unreachable
-//                            Log.d("timeout", "ConnectException!!!!!");
-//
-//                            replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_ERROR");
-//                            replyIntent.putExtra("data", "The specified server is unreachable!");
-//
-//                        } else if (e instanceof SocketTimeoutException) {
-//                            replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_ERROR");
-//                            replyIntent.putExtra("data", "Connection timed out!");
-//                        } else {
-//                            replyIntent.putExtra("status", "CONNECTION_INITIALIZATION_ERROR");
-//                            replyIntent.putExtra("data", "An unhandled exception occurred!");
-//                        }
-//                    }
-//                    // Send intent to activity's BroadcastReceiver
-//                    LocalBroadcastManager.getInstance(this).sendBroadcast(replyIntent);
-//
-//                    break;
-//
-//                case "SEND_REQUEST_TO_SERVER":
-//                    sendMsgAndRecvReply(jsonData);
-//
-//            }
-//        }
-//    }
-
     private class ClientNotInConnection extends Exception {
 
         private ClientNotInConnection(String message) {
@@ -150,6 +96,55 @@ public class ClientService extends Service {
             e.printStackTrace();
         }
         bufReader = new BufferedReader(inputStreamReader);
+    }
+
+    // Method used to terminate our currently established connection to a Server
+    // and return the status of the termination action
+    public boolean terminateConnection() throws JSONException {
+        // First, we send a TERMINATE_CONNECTION request to the Server
+
+        // Create the TERMINATE_CONNECTION request's json message
+        HashMap<String, String> msg_data = new HashMap<>();
+        JSONObject jsonData = MessageGenerator.generateJsonObject("INITIALIZE_NEW_CONNECTION", msg_data);
+
+        JSONObject jsonResponse = new JSONObject(sendMsgAndRecvReply(jsonData));
+
+        if (jsonResponse.getString("status").equals("SUCCESS")) {
+            // The Server has responded with a SUCCESS status, so we know that our request to
+            // terminate our connection has been acknowledged
+
+            // Release the Client's resources before closing the socket
+            try {
+                if (inputStreamReader != null) {
+                    inputStreamReader.close();
+                }
+
+                if (bufReader != null) {
+                    bufReader.close();
+                }
+
+                if (outputStreamWriter != null) {
+                    outputStreamWriter.close();
+                }
+
+                if (bufWriter != null) {
+                    bufWriter.close();
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            // Call closeSocket() method to close our connection's socket
+            closeSocket();
+
+            return true;
+
+        } else {
+            // The Server has responded with a FAIL or ERROR status, so we notify the user by
+            // returning false
+            return false;
+        }
     }
 
     private void createSocket() throws Exception {

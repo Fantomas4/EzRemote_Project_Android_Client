@@ -6,17 +6,26 @@
     android:layout_height="match_parent"
     tools:context=".RemoteMenuActivity">
 
-    <Button
-        android:id="@+id/shutdown_command_button"
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="26dp"
-        android:layout_marginTop="38dp"
-        android:layout_marginEnd="26dp"
-        android:onClick="onClickShutdownComputerButton"
-        android:text="Shutdown computer"
-        android:textAppearance="@style/TextAppearance.AppCompat"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
+
+        <Button
+            android:id="@+id/shutdown_command_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="onClickShutdownComputerButton"
+            android:text="Shutdown computer"
+            android:textAppearance="@style/TextAppearance.AppCompat" />
+    </LinearLayout>
+
 </android.support.constraint.ConstraintLayout>
