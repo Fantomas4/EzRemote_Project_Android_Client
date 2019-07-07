@@ -19,6 +19,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 public class ClientService extends Service {
@@ -33,6 +36,8 @@ public class ClientService extends Service {
     private boolean inConnection;
     // Binder given to clients
     private final IBinder binder;
+    // Used to send HEARTBEAT_CHECK requests at the determined time intervals to the Server
+    private ScheduledExecutorService heartbeatExecutorService;
 
 
     private static final Pattern REGEX_IP_ADDRESS
@@ -96,6 +101,42 @@ public class ClientService extends Service {
             e.printStackTrace();
         }
         bufReader = new BufferedReader(inputStreamReader);
+
+        // Start the Heartbeat request thread
+        startHeartbeatThread();
+    }
+
+    public void startHeartbeatThread() {
+        // Initialize the HEARTBEAT_CHECK scheduled executor service
+        heartbeatExecutorService = Executors.newSingleThreadScheduledExecutor();
+        heartbeatExecutorService.scheduleAtFixedRate(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        // Create the HEARTBEAT_CHECK request's json message
+                        HashMap<String, String> msgData = new HashMap<>();
+                        JSONObject jsonData = MessageGenerator.generateJsonObject("HEARTBEAT_CHECK", msgData);
+
+                        try {
+                            JSONObject jsonResponse = new JSONObject(sendMsgAndRecvReply(jsonData));
+
+                            if (jsonResponse.getString("status").equals("SUCCESS")) {
+                                // The Server has responded with a SUCCESS status, so we know that our heartbeat request
+                                // was acknowledged and the Server is still there!
+                                Log.d("heartbeat", "HEARTBEAT_CHECK OK!");
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+
+
+                    }
+                },
+                0, 1000, TimeUnit.MILLISECONDS);
+    }
+
+    public void stopHeartbeatThread() {
+        heartbeatExecutorService.shutdownNow();
     }
 
     // Method used to terminate our currently established connection to a Server
@@ -104,14 +145,17 @@ public class ClientService extends Service {
         // First, we send a TERMINATE_CONNECTION request to the Server
 
         // Create the TERMINATE_CONNECTION request's json message
-        HashMap<String, String> msg_data = new HashMap<>();
-        JSONObject jsonData = MessageGenerator.generateJsonObject("INITIALIZE_NEW_CONNECTION", msg_data);
+        HashMap<String, String> msgData = new HashMap<>();
+        JSONObject jsonData = MessageGenerator.generateJsonObject("INITIALIZE_NEW_CONNECTION", msgData);
 
         JSONObject jsonResponse = new JSONObject(sendMsgAndRecvReply(jsonData));
 
         if (jsonResponse.getString("status").equals("SUCCESS")) {
             // The Server has responded with a SUCCESS status, so we know that our request to
             // terminate our connection has been acknowledged
+
+            // Shutdown the heartbeat request thread
+            stopHeartbeatThread();
 
             // Release the Client's resources before closing the socket
             try {
