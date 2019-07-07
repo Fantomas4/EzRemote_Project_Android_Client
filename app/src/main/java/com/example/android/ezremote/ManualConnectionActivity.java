@@ -37,6 +37,7 @@ public class ManualConnectionActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_manual_connection);
+
         ipInput = findViewById(R.id.ipEditText);
         portInput = findViewById(R.id.portEditText);
         notificationMsg = findViewById(R.id.notificationMsgTextView);
@@ -52,6 +53,10 @@ public class ManualConnectionActivity extends AppCompatActivity {
         Intent intent = new Intent(this, ClientService.class);
         startService(intent);
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
+
+        ipInput.setText("");
+        portInput.setText("");
+        notificationMsg.setText("");
     }
 
     @Override
