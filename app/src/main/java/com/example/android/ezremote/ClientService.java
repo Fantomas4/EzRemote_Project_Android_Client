@@ -4,6 +4,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.util.Log;
 
 import org.json.JSONException;
@@ -37,7 +38,7 @@ public class ClientService extends Service {
     // Binder given to clients
     private final IBinder binder;
     // Used to send HEARTBEAT_CHECK requests at the determined time intervals to the Server
-    private ScheduledExecutorService heartbeatExecutorService;
+    private HeartbeatThread heartbeatThread;
 
 
     private static final Pattern REGEX_IP_ADDRESS
@@ -103,45 +104,52 @@ public class ClientService extends Service {
         bufReader = new BufferedReader(inputStreamReader);
 
         // Start the Heartbeat request thread
-        startHeartbeatThread();
+        heartbeatThread = new HeartbeatThread();
+        heartbeatThread.start();
     }
 
-    public void startHeartbeatThread() {
-        // Initialize the HEARTBEAT_CHECK scheduled executor service
-        heartbeatExecutorService = Executors.newSingleThreadScheduledExecutor();
-        heartbeatExecutorService.scheduleAtFixedRate(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        // Create the HEARTBEAT_CHECK request's json message
-                        HashMap<String, String> msgData = new HashMap<>();
-                        JSONObject jsonData = MessageGenerator.generateJsonObject("HEARTBEAT_CHECK", msgData);
+    private class HeartbeatThread extends Thread {
 
-                        try {
-                            JSONObject jsonResponse = new JSONObject(sendMsgAndRecvReply(jsonData));
+        private boolean stopHeartbeat = false;
 
-                            if (jsonResponse.getString("status").equals("SUCCESS")) {
-                                // The Server has responded with a SUCCESS status, so we know that our heartbeat request
-                                // was acknowledged and the Server is still there!
-                                Log.d("heartbeat", "HEARTBEAT_CHECK OK!");
-                            }
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
+        public void run(){
 
+            while (!stopHeartbeat) {
+                // Heartbeat request interval
+                SystemClock.sleep(1000);
 
+                // Create the HEARTBEAT_CHECK request's json message
+                HashMap<String, String> msgData = new HashMap<>();
+                JSONObject jsonData = MessageGenerator.generateJsonObject("HEARTBEAT_CHECK", msgData);
+
+                try {
+                    JSONObject jsonResponse = new JSONObject(sendMsgAndRecvReply(jsonData));
+
+                    if (jsonResponse.getString("status").equals("SUCCESS")) {
+                        // The Server has responded with a SUCCESS status, so we know that our heartbeat request
+                        // was acknowledged and the Server is still there!
+                        Log.d("heartbeat", "HEARTBEAT_CHECK OK!");
                     }
-                },
-                0, 1000, TimeUnit.MILLISECONDS);
-    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 
-    public void stopHeartbeatThread() {
-        heartbeatExecutorService.shutdownNow();
+        public void terminate() {
+            stopHeartbeat = true;
+        }
     }
 
     // Method used to terminate our currently established connection to a Server
     // and return the status of the termination action
     public boolean terminateConnection() throws JSONException {
+        // Temporarily terminate the heartbeat request thread so
+        // that its requests are not send to a closed socket if
+        // the Server successfully satisfies the TERMINATE_CONNECTION
+        // request
+        heartbeatThread.terminate();
+
         // First, we send a TERMINATE_CONNECTION request to the Server
 
         // Create the TERMINATE_CONNECTION request's json message
@@ -153,9 +161,6 @@ public class ClientService extends Service {
         if (jsonResponse.getString("status").equals("SUCCESS")) {
             // The Server has responded with a SUCCESS status, so we know that our request to
             // terminate our connection has been acknowledged
-
-            // Shutdown the heartbeat request thread
-            stopHeartbeatThread();
 
             // Release the Client's resources before closing the socket
             try {
@@ -187,6 +192,11 @@ public class ClientService extends Service {
         } else {
             // The Server has responded with a FAIL or ERROR status, so we notify the user by
             // returning false
+
+            // Restart the Heartbeat request thread since the last TERMINATE_CONNECTION
+            // request was unsuccessful
+            heartbeatThread.start();
+
             return false;
         }
     }
