@@ -15,6 +15,7 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -116,16 +117,15 @@ public class RemoteMenuActivity extends AppCompatActivity {
             JSONObject jsonData = MessageGenerator.generateJsonObject("TERMINATE_CONNECTION", msgData);
 
             JSONObject jsonResponse = null;
+            String status = null;
+            JSONObject data = null;
 
             try {
                 jsonResponse = new JSONObject(clientService.sendMsgAndRecvReply(jsonData));
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
+                status = jsonResponse.getString("status");;
+                data = jsonResponse.getJSONObject("data");
 
-            try {
-
-                if (jsonResponse.get("status").equals("SUCCESS")) {
+                if (status.equals("SUCCESS")) {
                     // The Server has responded with a SUCCESS status, so we know that the
                     // TERMINATE_CONNECTION request has been serviced successfully
 
@@ -136,8 +136,13 @@ public class RemoteMenuActivity extends AppCompatActivity {
                     serverResponseData = jsonResponse.getString("data");
 
                 }
+
             } catch (JSONException e) {
                 e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+
+                serverResponseData = "Error!";
             }
 
             return serverResponseData;
@@ -146,8 +151,9 @@ public class RemoteMenuActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String serverResponseData) {
             if (serverResponseData != null)
-            // The Server has responded with a FAIL or ERROR status, so we notify the user and exit
-            Toast.makeText(getApplicationContext(), serverResponseData, Toast.LENGTH_LONG).show();
+                // The Server has responded with a FAIL or ERROR status or an exception was caught,
+                // so we notify the user and exit
+                Toast.makeText(getApplicationContext(), serverResponseData, Toast.LENGTH_LONG).show();
 
         }
     }

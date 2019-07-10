@@ -17,6 +17,7 @@ import android.widget.TextView;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -215,7 +216,7 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
     }
 
     // Class used for the parallel execution of the shutdown command task
-    private class ShutdownCommandTask extends AsyncTask<String, Void, JSONObject> {
+    private class ShutdownCommandTask extends AsyncTask<String, Void, Object> {
 
         String hours;
         String mins;
@@ -223,7 +224,7 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
         String msecs;
 
         @Override
-        protected JSONObject doInBackground(String... params) {
+        protected Object doInBackground(String... params) {
             hours = params[0];
             mins = params[1];
             secs = params[2];
@@ -238,130 +239,191 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
             msgData.put("msecs", msecs);
 
             JSONObject jsonData = MessageGenerator.generateJsonObject("EXECUTE_SHUTDOWN_COMMAND", msgData);
-            JSONObject jsonResponse = null;
+
+            Object executionResult = null;
 
             try {
-                jsonResponse = new JSONObject(clientService.sendMsgAndRecvReply(jsonData));
+                executionResult = new JSONObject(clientService.sendMsgAndRecvReply(jsonData));
             } catch (JSONException e) {
                 e.printStackTrace();
+
+                executionResult = e;
+            } catch (IOException e) {
+                e.printStackTrace();
+
+                executionResult = e;
             }
 
-            return jsonResponse;
+            return executionResult;
         }
 
         @Override
-        protected void onPostExecute(JSONObject jsonResponse) {
+        protected void onPostExecute(Object executionResult) {
 
-            try {
+            if (executionResult instanceof JSONObject) {
 
-                if (jsonResponse.get("status").equals("SUCCESS")) {
-                    // The Server has responded with a SUCCESS status, so we know that the shutdown command
-                    // request has been serviced successfully
+                JSONObject jsonResponse = (JSONObject) executionResult;
 
-                    // Display the "Cancel Timer" button, disable the "Set timer" and "Shutdown now" buttons.
-                    setTimerButton.setEnabled(false);
-                    shutdownNowButton.setEnabled(false);
-                    cancelTimerButton.setVisibility(View.VISIBLE);
+                try {
 
-                    // Calculate the total time of the shutdown timer by converting user's input in milliseconds
-                    final int totalTime = Integer.parseInt(hours) * 3600000 + Integer.parseInt(mins) * 60000 +
-                            Integer.parseInt(secs) * 1000 + Integer.parseInt(msecs);
+                    if (jsonResponse.get("status").equals("SUCCESS")) {
+                        // The Server has responded with a SUCCESS status, so we know that the shutdown command
+                        // request has been serviced successfully
 
-                    // Start the countdown timer using totalTime
-                    shutdownCountDownTimer = new CountDownTimer(totalTime, 1000) {
+                        // Display the "Cancel Timer" button, disable the "Set timer" and "Shutdown now" buttons.
+                        setTimerButton.setEnabled(false);
+                        shutdownNowButton.setEnabled(false);
+                        cancelTimerButton.setVisibility(View.VISIBLE);
 
-                        @Override
-                        public void onTick(final long millisUntilFinished) {
-                            // Print the countdown to notificationMsgTextView
-                            notificationMsgTextView.setText(String.format(Locale.getDefault(), "Remote computer will shutdown in: \n %02d : %02d : %02d",
-                                    TimeUnit.MILLISECONDS.toHours(millisUntilFinished),
-                                    TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millisUntilFinished)),
-                                    TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished))));
+                        // Calculate the total time of the shutdown timer by converting user's input in milliseconds
+                        final int totalTime = Integer.parseInt(hours) * 3600000 + Integer.parseInt(mins) * 60000 +
+                                Integer.parseInt(secs) * 1000 + Integer.parseInt(msecs);
 
-                        }
+                        // Start the countdown timer using totalTime
+                        shutdownCountDownTimer = new CountDownTimer(totalTime, 1000) {
 
-                        @Override
-                        public void onFinish() {
-                            // update the notificationMsgTextView to inform the user that the shutdown command
-                            // has been executed, enable the "Set timer" and "Shutdown now" buttons and hide the cancelTimerButton button.
-                            notificationMsgTextView.setText("Shutdown executed!");
-                            cancelTimerButton.setVisibility(View.GONE);
-                            setTimerButton.setEnabled(true);
-                            shutdownNowButton.setEnabled(true);
-                        }
-                    }.start();
+                            @Override
+                            public void onTick(final long millisUntilFinished) {
+                                // Print the countdown to notificationMsgTextView
+                                notificationMsgTextView.setText(String.format(Locale.getDefault(), "Remote computer will shutdown in: \n %02d : %02d : %02d",
+                                        TimeUnit.MILLISECONDS.toHours(millisUntilFinished),
+                                        TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millisUntilFinished)),
+                                        TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished))));
 
-                } else {
+                            }
 
-                    // The Server has responded with a FAIL or ERROR status, so we notify the user and exit
-                    notificationMsgTextView.setText(jsonResponse.getString("data"));
+                            @Override
+                            public void onFinish() {
+                                // update the notificationMsgTextView to inform the user that the shutdown command
+                                // has been executed, enable the "Set timer" and "Shutdown now" buttons and hide the cancelTimerButton button.
+                                notificationMsgTextView.setText("Shutdown executed!");
+                                cancelTimerButton.setVisibility(View.GONE);
+                                setTimerButton.setEnabled(true);
+                                shutdownNowButton.setEnabled(true);
+                            }
+                        }.start();
 
+                    } else {
+
+                        // The Server has responded with a FAIL or ERROR status, so we notify the user and exit
+                        notificationMsgTextView.setText(jsonResponse.getString("data"));
+
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
                 }
-            } catch (JSONException e) {
-                e.printStackTrace();
+            } else if (executionResult instanceof IOException) {
+//                // The Server has abruptly ended the connection.
+//                // Switch to the ManualConnection activity and print an error message
+//                // inside the notification message element
+//                Intent manualConnectionActivityIntent = new Intent(ShutdownCommandActivity.this, ManualConnectionActivity.class);
+//                Bundle bundle = new Bundle();
+//                bundle.putString("notificationMsg", "Error: The Server has abruptly terminated the connection!");
+//                manualConnectionActivityIntent.putExtras(bundle);
+//                startActivity(manualConnectionActivityIntent);
+
+            } else if (executionResult instanceof Exception) {
+                // An unexpected exception has occured
+                ((Exception) executionResult).printStackTrace();
             }
+
+
         }
     }
 
     // Class used for the parallel execution of the cancel shutdown command task
-    private class CancelShutdownCommandTask extends AsyncTask<Void, Void, JSONObject> {
+    private class CancelShutdownCommandTask extends AsyncTask<Void, Void, Object> {
 
         @Override
-        protected JSONObject doInBackground(Void... voids) {
+        protected Object doInBackground(Void... voids) {
 
             // Create a json object that holds the request data that will be send to the server.
             HashMap<String, String> msgData = new HashMap<>();
             JSONObject jsonData = MessageGenerator.generateJsonObject("CANCEL_SHUTDOWN_COMMAND", msgData);
 
-            JSONObject jsonResponse = null;
+            Object executionResult = null;
 
             try {
-                jsonResponse = new JSONObject(clientService.sendMsgAndRecvReply(jsonData));
+                executionResult = new JSONObject(clientService.sendMsgAndRecvReply(jsonData));
             } catch (JSONException e) {
                 e.printStackTrace();
+
+                executionResult = e;
+            } catch (IOException e) {
+                e.printStackTrace();
+
+                executionResult = e;
             }
 
-            return jsonResponse;
+            return executionResult;
         }
 
         @Override
-        protected void onPostExecute(JSONObject jsonResponse) {
-            try {
-                if (jsonResponse.getString("status").equals("SUCCESS")) {
-                    // The Server has responded with a SUCCESS status, so we know that the cancel shutdown
-                    // command request has been serviced successfully
+        protected void onPostExecute(Object executionResult) {
 
-                    // Cancel the shutdownCountDownTimer that prints the remaining time in the notificationMsgTextView
-                    shutdownCountDownTimer.cancel();
+            if (executionResult instanceof JSONObject) {
 
-                    // Notify the user by printing a message in notificationMsgTextView
-                    notificationMsgTextView.setText("Shutdown command has been canceled!");
+                JSONObject jsonResponse = (JSONObject) executionResult;
+                String status = null;
+                JSONObject data = null;
 
-                    // Re-enable the "Set timer" and "Shutdown now" buttons
-                    setTimerButton.setEnabled(true);
-                    shutdownNowButton.setEnabled(true);
-                    cancelTimerButton.setVisibility(View.GONE);
-
-                } else if (jsonResponse.getString("status").equals("FAIL")) {
-                    // Modify the user by printing a message in notificationMsgTextView
-                    notificationMsgTextView.setText(jsonResponse.getString("fail_message"));
-
-                    // Re-enable the "Set timer" and "Shutdown now" buttons
-                    setTimerButton.setEnabled(true);
-                    shutdownNowButton.setEnabled(true);
-                    cancelTimerButton.setVisibility(View.GONE);
-
-                } else if (jsonResponse.getString("status").equals("ERROR")) {
-                    // Notify the user by printing a message in notificationMsgTextView
-                    notificationMsgTextView.setText(jsonResponse.getString("error_message"));
-
-                    // Re-enable the "Set timer" and "Shutdown now" buttons
-                    setTimerButton.setEnabled(true);
-                    shutdownNowButton.setEnabled(true);
-                    cancelTimerButton.setVisibility(View.GONE);
+                try {
+                    status = jsonResponse.getString("status");
+                    data = jsonResponse.getJSONObject("data");
+                } catch (JSONException e) {
+                    e.printStackTrace();
                 }
-            } catch (JSONException e) {
-                e.printStackTrace();
+
+                try {
+                    if (status.equals("SUCCESS")) {
+                        // The Server has responded with a SUCCESS status, so we know that the cancel shutdown
+                        // command request has been serviced successfully
+
+                        // Cancel the shutdownCountDownTimer that prints the remaining time in the notificationMsgTextView
+                        shutdownCountDownTimer.cancel();
+
+                        // Notify the user by printing a message in notificationMsgTextView
+                        notificationMsgTextView.setText("Shutdown command has been canceled!");
+
+                        // Re-enable the "Set timer" and "Shutdown now" buttons
+                        setTimerButton.setEnabled(true);
+                        shutdownNowButton.setEnabled(true);
+                        cancelTimerButton.setVisibility(View.GONE);
+
+                    } else if (status.equals("FAIL")) {
+                        // Modify the user by printing a message in notificationMsgTextView
+                        notificationMsgTextView.setText(data.getString("fail_message"));
+
+                        // Re-enable the "Set timer" and "Shutdown now" buttons
+                        setTimerButton.setEnabled(true);
+                        shutdownNowButton.setEnabled(true);
+                        cancelTimerButton.setVisibility(View.GONE);
+
+                    } else if (status.equals("ERROR")) {
+                        // Notify the user by printing a message in notificationMsgTextView
+                        notificationMsgTextView.setText(data.getString("error_message"));
+
+                        // Re-enable the "Set timer" and "Shutdown now" buttons
+                        setTimerButton.setEnabled(true);
+                        shutdownNowButton.setEnabled(true);
+                        cancelTimerButton.setVisibility(View.GONE);
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            } else if (executionResult instanceof IOException) {
+                // The Server has abruptly ended the connection.
+                // Switch to the ManualConnection activity and print an error message
+                // inside the notification message element
+                Intent manualConnectionActivityIntent = new Intent(ShutdownCommandActivity.this, ManualConnectionActivity.class);
+                Bundle bundle = new Bundle();
+                bundle.putString("notificationMsg", "Error: The Server has abruptly terminated the connection!");
+                manualConnectionActivityIntent.putExtras(bundle);
+                startActivity(manualConnectionActivityIntent);
+
+            } else if (executionResult instanceof Exception) {
+                // An unexpected exception has occured
+                ((Exception) executionResult).printStackTrace();
             }
         }
     }
