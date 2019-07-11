@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.SystemClock;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import org.json.JSONException;
@@ -38,13 +39,23 @@ public class ClientService extends Service {
     private HeartbeatThread heartbeatThread;
 
 
+    public final class Constants {
+
+        // Defines a custom Intent action
+        public static final String BROADCAST_ACTION =
+                "com.example.android.ezremote.BROADCAST";
+
+        // Defines the key for the status "extra" in an Intent
+        public static final String EXTENDED_DATA_STATUS =
+                "com.example.android.ezremote.STATUS";
+    }
+
     private static final Pattern REGEX_IP_ADDRESS
             = Pattern.compile(
             "((25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}|[1-9][0-9]|[1-9])\\.(25[0-5]|2[0-4]"
                     + "[0-9]|[0-1][0-9]{2}|[1-9][0-9]|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|[0-1]"
                     + "[0-9]{2}|[1-9][0-9]|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}"
                     + "|[1-9][0-9]|[0-9]))");
-
 
     public ClientService() {
         this.inConnection = false;
@@ -141,6 +152,23 @@ public class ClientService extends Service {
                         // thread by using the provided terminate() method,
                         // so we simply continue to the next loop where the thread will
                         // check the stopHeartbeat flag value and stop.
+
+                        // We send a broadcast to all necessary activities so appropriate action
+                        // is taken in the UI and the user is notified
+
+                        /*
+                         * Creates a new Intent containing a Uri object
+                         * BROADCAST_ACTION is a custom Intent action
+                         */
+                        String status = "The Server has abruptly terminated the connection!";
+                        Intent localIntent =
+                                new Intent(Constants.BROADCAST_ACTION)
+                                        // Puts the status into the Intent
+                                        .putExtra(Constants.EXTENDED_DATA_STATUS, status);
+                        // Broadcasts the Intent to receivers in this app.
+                        LocalBroadcastManager.getInstance(ClientService.this).sendBroadcast(localIntent);
+
+                        Log.d("HeartBeatThread", "Broadcast was sent");
                     }
                 }
             }

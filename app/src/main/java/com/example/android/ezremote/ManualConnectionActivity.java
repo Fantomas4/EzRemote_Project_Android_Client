@@ -29,21 +29,32 @@ public class ManualConnectionActivity extends AppCompatActivity {
     private EditText portInput;
     private TextView notificationMsg;
 
+    private String notificationText;
     private ClientService clientService;
     private boolean isBound = false;
 
+
+    public void finishActivity() {
+        finish();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_manual_connection);
 
+        Log.d("ManualConActivity", "MPIKA ONCREATE!!!");
+
         ipInput = findViewById(R.id.ipEditText);
         portInput = findViewById(R.id.portEditText);
         notificationMsg = findViewById(R.id.notificationMsgTextView);
 
-        if (savedInstanceState != null) {
-            notificationMsg.setText(savedInstanceState.getString("notificationMessage"));
+        Intent intent = getIntent();
+        if (intent.getExtras() != null) {
+            Bundle bundle = intent.getExtras();
+            notificationText = bundle.getString("notificationMessage");
+        } else {
+            notificationText = "";
         }
 
     }
@@ -60,7 +71,7 @@ public class ManualConnectionActivity extends AppCompatActivity {
 
         ipInput.setText("");
         portInput.setText("");
-        notificationMsg.setText("");
+        notificationMsg.setText(notificationText);
     }
 
     @Override
@@ -156,6 +167,9 @@ public class ManualConnectionActivity extends AppCompatActivity {
                         // Now we are ready to switch to the next activity
                         Intent newActivityIntent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
                         ManualConnectionActivity.this.startActivity(newActivityIntent);
+
+                        // Kill this activity
+                        finishActivity();
 
                     } else if (status.equals("FAIL")){
                         // The Server has responded with a FAIL status, so we notify the user and exit
