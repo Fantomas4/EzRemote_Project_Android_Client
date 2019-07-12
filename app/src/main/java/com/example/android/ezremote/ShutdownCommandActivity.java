@@ -47,9 +47,6 @@ public class ShutdownCommandActivity extends NetworkActivity implements View.OnC
 
     CountDownTimer shutdownCountDownTimer;
 
-    private ClientService clientService;
-    private boolean isBound = false;
-
 
     public void finishActivity() {
         finish();
