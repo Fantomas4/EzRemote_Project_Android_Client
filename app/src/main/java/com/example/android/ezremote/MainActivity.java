@@ -1,19 +1,22 @@
 package com.example.android.ezremote;
 
+import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
 
     private Button scanNetworkBtn;
     private Button manualConnectionBtn;
     private Button settingsBtn;
+    private TextView notificationMsg;
 
-//    public static
-//    MainActivity::client
+    private String notificationText;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +48,23 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        notificationMsg = findViewById(R.id.notificationMsgTextView);
 
+        Intent intent = getIntent();
+        if (intent.getExtras() != null) {
+            Bundle bundle = intent.getExtras();
+            notificationText = bundle.getString("notificationMessage");
+        } else {
+            notificationText = "";
+        }
+    }
+
+    @Override
+    protected void onStart() {
+
+        super.onStart();
+
+        notificationMsg.setText(notificationText);
     }
 
     public void openScanNetworkActivity() {
@@ -56,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
     public void openManualConnectionActivity() {
         Intent intent = new Intent(this, ManualConnectionActivity.class);
         startActivity(intent);
+        finish();
     }
 
     public void openSettingsActivity() {

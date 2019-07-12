@@ -33,6 +33,10 @@ public class RemoteMenuActivity extends AppCompatActivity {
     BroadcastReceiver clientStateReceiver;
     IntentFilter statusIntentFilter;
 
+    public void finishActivity() {
+        finish();
+    }
+
     public final class Constants {
 
         // Defines a custom Intent action
@@ -80,11 +84,13 @@ public class RemoteMenuActivity extends AppCompatActivity {
                 // The Server has abruptly ended the connection.
                 // Switch to the ManualConnection activity and print an error message
                 // inside the notification message element
-                Intent manualConnectionActivityIntent = new Intent(RemoteMenuActivity.this, ManualConnectionActivity.class);
+                Intent manualConnectionActivityIntent = new Intent(RemoteMenuActivity.this, MainActivity.class);
                 Bundle bundle = new Bundle();
                 bundle.putString("notificationMessage", status);
                 manualConnectionActivityIntent.putExtras(bundle);
                 startActivity(manualConnectionActivityIntent);
+                // Kill this activity
+                finishActivity();
             }
         };
     }

@@ -49,13 +49,7 @@ public class ManualConnectionActivity extends AppCompatActivity {
         portInput = findViewById(R.id.portEditText);
         notificationMsg = findViewById(R.id.notificationMsgTextView);
 
-        Intent intent = getIntent();
-        if (intent.getExtras() != null) {
-            Bundle bundle = intent.getExtras();
-            notificationText = bundle.getString("notificationMessage");
-        } else {
-            notificationText = "";
-        }
+
 
     }
 
@@ -68,6 +62,8 @@ public class ManualConnectionActivity extends AppCompatActivity {
         Intent intent = new Intent(this, ClientService.class);
         startService(intent);
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
+
+        notificationText = "";
 
         ipInput.setText("");
         portInput.setText("");
