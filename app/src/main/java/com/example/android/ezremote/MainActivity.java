@@ -49,6 +49,11 @@ public class MainActivity extends AppCompatActivity {
         });
 
         notificationMsg = findViewById(R.id.notificationMsgTextView);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
 
         Intent intent = getIntent();
         if (intent.getExtras() != null) {
@@ -57,14 +62,14 @@ public class MainActivity extends AppCompatActivity {
         } else {
             notificationText = "";
         }
+
+        notificationMsg.setText(notificationText);
     }
 
     @Override
-    protected void onStart() {
+    protected  void onResume() {
+        super.onResume();
 
-        super.onStart();
-
-        notificationMsg.setText(notificationText);
     }
 
     public void openScanNetworkActivity() {
@@ -75,7 +80,6 @@ public class MainActivity extends AppCompatActivity {
     public void openManualConnectionActivity() {
         Intent intent = new Intent(this, ManualConnectionActivity.class);
         startActivity(intent);
-        finish();
     }
 
     public void openSettingsActivity() {

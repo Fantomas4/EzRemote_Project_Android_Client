@@ -187,6 +187,11 @@ public class ClientService extends Service {
         // the Server successfully satisfies the TERMINATE_CONNECTION
         // request
         heartbeatThread.terminate();
+        try {
+            heartbeatThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         // First, we send a TERMINATE_CONNECTION request to the Server
 
@@ -235,8 +240,8 @@ public class ClientService extends Service {
     private void createSocket() throws Exception {
 
         try {
-            this.socket = new Socket();
-            this.socket.connect(new InetSocketAddress(dstAddress, dstPort), 5000);
+            socket = new Socket();
+            socket.connect(new InetSocketAddress(dstAddress, dstPort), 5000);
             this.inConnection = true;
 
         } catch (Exception e) {
