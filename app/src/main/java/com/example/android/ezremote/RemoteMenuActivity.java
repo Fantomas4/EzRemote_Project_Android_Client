@@ -92,9 +92,13 @@ public class RemoteMenuActivity extends NetworkActivity {
             // Execute TerminateConnectionTask using AsyncTask
             new TerminateConnectionTask().execute();
 
-            // Call the original onBackPressed method that calls finish() for the current
-            // activity and switches to the previous activity
-            super.onBackPressed();
+//            // Call the original onBackPressed method that calls finish() for the current
+//            // activity and switches to the previous activity
+//            super.onBackPressed();
+            Bundle  bundle = new Bundle();
+            bundle.putString("notificationMessage", "");
+            switchActivity(bundle);
+
             return;
         }
 
