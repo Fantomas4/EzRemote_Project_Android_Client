@@ -49,8 +49,6 @@ public class ManualConnectionActivity extends AppCompatActivity {
         portInput = findViewById(R.id.portEditText);
         notificationMsg = findViewById(R.id.notificationMsgTextView);
 
-
-
     }
 
     @Override

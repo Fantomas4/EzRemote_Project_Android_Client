@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-public class ShutdownCommandActivity extends AppCompatActivity implements View.OnClickListener {
+public class ShutdownCommandActivity extends NetworkActivity implements View.OnClickListener {
 
     private Button incHoursButton;
     private Button incMinsButton;
@@ -51,10 +51,29 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
     private boolean isBound = false;
 
 
+    public void finishActivity() {
+        finish();
+    }
+
+    @Override
+    protected int getLayoutResourceId() {
+        return R.layout.activity_shutdown_command;
+    }
+
+    @Override
+    protected void switchActivity(Bundle bundle) {
+        // Switch to the ManualConnection activity and print an error message
+        // inside the notification message element
+        Intent manualConnectionActivityIntent = new Intent(ShutdownCommandActivity.this, MainActivity.class);
+        manualConnectionActivityIntent.putExtras(bundle);
+        startActivity(manualConnectionActivityIntent);
+        // Kill this activity
+        finishActivity();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_shutdown_command);
 
         incHoursButton = findViewById(R.id.incHoursButton);
         incHoursButton.setOnClickListener(this);
@@ -114,39 +133,15 @@ public class ShutdownCommandActivity extends AppCompatActivity implements View.O
 
     @Override
     protected void onStart() {
-
         super.onStart();
 
-        // Bind to LocalService
-        Intent intent = new Intent(this, ClientService.class);
-        bindService(intent, connection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        unbindService(connection);
-        isBound = false;
+
     }
-
-    /**
-     * Defines callbacks for service binding, passed to bindService()
-     */
-    private ServiceConnection connection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            // We've bound to ClientService, cast the IBinder and get ClientService instance
-            ClientService.LocalBinder binder = (ClientService.LocalBinder) service;
-            clientService = binder.getService();
-            isBound = true;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName arg0) {
-            isBound = false;
-        }
-    };
 
     // it is necessary to implement implements View.OnClickListener for the activity class,
     // otherwise "Method does not override method from its superclass error" is shown.

@@ -23,131 +23,61 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RemoteMenuActivity extends AppCompatActivity {
+public class RemoteMenuActivity extends NetworkActivity {
 
     boolean doubleBackToExitPressedOnce = false;
 
-    private ClientService clientService;
-    private boolean isBound = false;
 
-    BroadcastReceiver clientStateReceiver;
-    IntentFilter statusIntentFilter;
+    @Override
+    protected void switchActivity(Bundle bundle) {
+        // Switch to the ManualConnection activity and print an error message
+        // inside the notification message element
+        Intent manualConnectionActivityIntent = new Intent(RemoteMenuActivity.this, MainActivity.class);
+        manualConnectionActivityIntent.putExtras(bundle);
+        startActivity(manualConnectionActivityIntent);
+        // Kill this activity
+        finishActivity();
+    }
+
+    @Override
+    protected int getLayoutResourceId() {
+        return R.layout.activity_remote_menu;
+    }
 
     public void finishActivity() {
         finish();
     }
 
-    public final class Constants {
-
-        // Defines a custom Intent action
-        public static final String BROADCAST_ACTION =
-                "com.example.android.ezremote.BROADCAST";
-
-        // Defines the key for the status "extra" in an Intent
-        public static final String EXTENDED_DATA_STATUS =
-                "com.example.android.ezremote.STATUS";
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_remote_menu);
 
-        // The filter's action is BROADCAST_ACTION
-        statusIntentFilter = new IntentFilter(
-                Constants.BROADCAST_ACTION);
-
-        // Adds a data filter for the HTTP scheme
-        // (com.example.android.ezremote)
-        //        statusIntentFilter.addDataScheme("http");
-
-        // Broadcast receiver for receiving status updates from the ClientService
-        // *** WARNING *** There are 2 types of broadcast, static and dynamic.
-        // We implement a dynamic broadcast (no need to edit manifest)
-        clientStateReceiver = new BroadcastReceiver() {
-
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                Log.d("BroadcastReceiver", "MPIKA");
-
-                String status;
-                Bundle extras = intent.getExtras();
-
-                if (extras == null) {
-                    status = null;
-                } else {
-                    status = extras.getString(RemoteMenuActivity.Constants.EXTENDED_DATA_STATUS);
-                }
-
-                Log.d("BroadcastReceiver", "received broadcast!");
-
-                // The Server has abruptly ended the connection.
-                // Switch to the ManualConnection activity and print an error message
-                // inside the notification message element
-                Intent manualConnectionActivityIntent = new Intent(RemoteMenuActivity.this, MainActivity.class);
-                Bundle bundle = new Bundle();
-                bundle.putString("notificationMessage", status);
-                manualConnectionActivityIntent.putExtras(bundle);
-                startActivity(manualConnectionActivityIntent);
-                // Kill this activity
-                finishActivity();
-            }
-        };
     }
 
     @Override
     protected void onStart() {
-
         super.onStart();
 
-        // Bind to LocalService
-        Intent intent = new Intent(this, ClientService.class);
-        startService(intent);
-        bindService(intent, connection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onResume() {
-
         super.onResume();
 
-        // Registers the ClientStateReceiver and its intent filters
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-                clientStateReceiver,
-                statusIntentFilter);
+
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(clientStateReceiver);
+
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        unbindService(connection);
-        isBound = false;
+
     }
-
-    /**
-     * Defines callbacks for service binding, passed to bindService()
-     */
-    private ServiceConnection connection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            // We've bound to ClientService, cast the IBinder and get ClientService instance
-            ClientService.LocalBinder binder = (ClientService.LocalBinder) service;
-            clientService = binder.getService();
-            isBound = true;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName arg0) {
-            isBound = false;
-        }
-    };
 
     /*
      * A method used to determine the Android UI's "Back Button" behavior.
