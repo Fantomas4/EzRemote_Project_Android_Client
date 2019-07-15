@@ -255,10 +255,14 @@ public class ShutdownCommandActivity extends NetworkActivity implements View.OnC
             if (executionResult instanceof JSONObject) {
 
                 JSONObject jsonResponse = (JSONObject) executionResult;
+                String status = null;
+                JSONObject data = null;
 
                 try {
+                    status = jsonResponse.getString("status");
+                    data = jsonResponse.getJSONObject("data");
 
-                    if (jsonResponse.get("status").equals("SUCCESS")) {
+                    if (status.equals("SUCCESS")) {
                         // The Server has responded with a SUCCESS status, so we know that the shutdown command
                         // request has been serviced successfully
 
@@ -295,11 +299,13 @@ public class ShutdownCommandActivity extends NetworkActivity implements View.OnC
                             }
                         }.start();
 
-                    } else {
+                    } else if (status.equals("FAIL")) {
+                        // The Server has responded with a FAIL status, so we notify the user and exit
+                        notificationMsgTextView.setText(data.getString("fail_message"));
 
-                        // The Server has responded with a FAIL or ERROR status, so we notify the user and exit
-                        notificationMsgTextView.setText(jsonResponse.getString("data"));
-
+                    } else if (status.equals("ERROR")) {
+                        // The Server has responded with an ERROR status, so we notify the user and exit
+                        notificationMsgTextView.setText(data.getString("error_message"));
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();

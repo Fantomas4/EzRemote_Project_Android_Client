@@ -136,7 +136,7 @@ public class RemoteMenuActivity extends NetworkActivity {
 
             try {
                 jsonResponse = new JSONObject(clientService.sendMsgAndRecvReply(jsonData));
-                status = jsonResponse.getString("status");;
+                status = jsonResponse.getString("status");
                 data = jsonResponse.getJSONObject("data");
 
                 if (status.equals("SUCCESS")) {
@@ -146,9 +146,11 @@ public class RemoteMenuActivity extends NetworkActivity {
                     // Terminate the ClientService's currently established connection to the Server
                     clientService.terminateConnection();
 
-                } else {
-                    serverResponseData = jsonResponse.getString("data");
+                } else if (status.equals("ERROR")) {
+                    serverResponseData = data.getString("error_message");
 
+                } else if (status.equals("FAIL")) {
+                    serverResponseData = data.getString("fail_message");
                 }
 
             } catch (JSONException e) {
