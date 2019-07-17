@@ -1,18 +1,9 @@
 package com.example.android.ezremote;
 
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.Handler;
-import android.os.IBinder;
-import android.support.v4.content.LocalBroadcastManager;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -30,11 +21,11 @@ public class RemoteMenuActivity extends NetworkActivity {
 
     @Override
     protected void switchActivity(Bundle bundle) {
-        // Switch to the ManualConnection activity and print an error message
+        // Switch to the MainActivity activity and print an error message
         // inside the notification message element
-        Intent manualConnectionActivityIntent = new Intent(RemoteMenuActivity.this, MainActivity.class);
-        manualConnectionActivityIntent.putExtras(bundle);
-        startActivity(manualConnectionActivityIntent);
+        Intent mainActivityIntent = new Intent(RemoteMenuActivity.this, MainActivity.class);
+        mainActivityIntent.putExtras(bundle);
+        startActivity(mainActivityIntent);
         // Kill this activity
         finishActivity();
     }
@@ -158,7 +149,7 @@ public class RemoteMenuActivity extends NetworkActivity {
             } catch (IOException e) {
                 e.printStackTrace();
 
-                serverResponseData = "Error!";
+                serverResponseData = "Connection Error!";
             }
 
             return serverResponseData;

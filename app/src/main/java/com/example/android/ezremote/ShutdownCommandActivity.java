@@ -1,13 +1,8 @@
 package com.example.android.ezremote;
 
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.CountDownTimer;
-import android.os.IBinder;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -59,11 +54,11 @@ public class ShutdownCommandActivity extends NetworkActivity implements View.OnC
 
     @Override
     protected void switchActivity(Bundle bundle) {
-        // Switch to the ManualConnection activity and print an error message
+        // Switch to the MainActivity activity and print an error message
         // inside the notification message element
-        Intent manualConnectionActivityIntent = new Intent(ShutdownCommandActivity.this, MainActivity.class);
-        manualConnectionActivityIntent.putExtras(bundle);
-        startActivity(manualConnectionActivityIntent);
+        Intent mainActivityIntent = new Intent(ShutdownCommandActivity.this, MainActivity.class);
+        mainActivityIntent.putExtras(bundle);
+        startActivity(mainActivityIntent);
         // Kill this activity
         finishActivity();
     }
@@ -311,14 +306,14 @@ public class ShutdownCommandActivity extends NetworkActivity implements View.OnC
                     e.printStackTrace();
                 }
             } else if (executionResult instanceof IOException) {
-//                // The Server has abruptly ended the connection.
-//                // Switch to the ManualConnection activity and print an error message
-//                // inside the notification message element
-//                Intent manualConnectionActivityIntent = new Intent(ShutdownCommandActivity.this, ManualConnectionActivity.class);
-//                Bundle bundle = new Bundle();
-//                bundle.putString("notificationMsg", "Error: The Server has abruptly terminated the connection!");
-//                manualConnectionActivityIntent.putExtras(bundle);
-//                startActivity(manualConnectionActivityIntent);
+                // The Server has abruptly ended the connection.
+                // Switch to the ManualConnection activity and print an error message
+                // inside the notification message element
+                Intent manualConnectionActivityIntent = new Intent(ShutdownCommandActivity.this, ManualConnectionActivity.class);
+                Bundle bundle = new Bundle();
+                bundle.putString("notificationMsg", "Error: Server unresponsive!");
+
+                switchActivity(bundle);
 
             } else if (executionResult instanceof Exception) {
                 // An unexpected exception has occured
@@ -415,9 +410,9 @@ public class ShutdownCommandActivity extends NetworkActivity implements View.OnC
                 // inside the notification message element
                 Intent manualConnectionActivityIntent = new Intent(ShutdownCommandActivity.this, ManualConnectionActivity.class);
                 Bundle bundle = new Bundle();
-                bundle.putString("notificationMsg", "Error: The Server has abruptly terminated the connection!");
-                manualConnectionActivityIntent.putExtras(bundle);
-                startActivity(manualConnectionActivityIntent);
+                bundle.putString("notificationMsg", "Error: Server unresponsive!");
+
+                switchActivity(bundle);
 
             } else if (executionResult instanceof Exception) {
                 // An unexpected exception has occured
