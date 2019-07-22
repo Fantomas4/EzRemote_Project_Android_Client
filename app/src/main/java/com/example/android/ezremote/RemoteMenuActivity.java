@@ -1,13 +1,8 @@
 package com.example.android.ezremote;
 
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.Handler;
-import android.os.IBinder;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
@@ -15,58 +10,65 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RemoteMenuActivity extends AppCompatActivity {
+public class RemoteMenuActivity extends NetworkActivity {
 
     boolean doubleBackToExitPressedOnce = false;
 
-    private ClientService clientService;
-    private boolean isBound = false;
+
+    @Override
+    protected void switchActivity(Bundle bundle) {
+        // Switch to the MainActivity activity and print an error message
+        // inside the notification message element
+        Intent mainActivityIntent = new Intent(RemoteMenuActivity.this, MainActivity.class);
+        mainActivityIntent.putExtras(bundle);
+        startActivity(mainActivityIntent);
+        // Kill this activity
+        finishActivity();
+    }
+
+    @Override
+    protected int getLayoutResourceId() {
+        return R.layout.activity_remote_menu;
+    }
+
+    public void finishActivity() {
+        finish();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_remote_menu);
+
     }
 
     @Override
     protected void onStart() {
-
         super.onStart();
 
-        // Bind to LocalService
-        Intent intent = new Intent(this, ClientService.class);
-        startService(intent);
-        bindService(intent, connection, Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        unbindService(connection);
-        isBound = false;
+
     }
-
-    /**
-     * Defines callbacks for service binding, passed to bindService()
-     */
-    private ServiceConnection connection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            // We've bound to ClientService, cast the IBinder and get ClientService instance
-            ClientService.LocalBinder binder = (ClientService.LocalBinder) service;
-            clientService = binder.getService();
-            isBound = true;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName arg0) {
-            isBound = false;
-        }
-    };
 
     /*
      * A method used to determine the Android UI's "Back Button" behavior.
@@ -81,9 +83,13 @@ public class RemoteMenuActivity extends AppCompatActivity {
             // Execute TerminateConnectionTask using AsyncTask
             new TerminateConnectionTask().execute();
 
-            // Call the original onBackPressed method that calls finish() for the current
-            // activity and switches to the previous activity
-            super.onBackPressed();
+//            // Call the original onBackPressed method that calls finish() for the current
+//            // activity and switches to the previous activity
+//            super.onBackPressed();
+            Bundle  bundle = new Bundle();
+            bundle.putString("notificationMessage", "");
+            switchActivity(bundle);
+
             return;
         }
 
@@ -116,28 +122,34 @@ public class RemoteMenuActivity extends AppCompatActivity {
             JSONObject jsonData = MessageGenerator.generateJsonObject("TERMINATE_CONNECTION", msgData);
 
             JSONObject jsonResponse = null;
+            String status = null;
+            JSONObject data = null;
 
             try {
                 jsonResponse = new JSONObject(clientService.sendMsgAndRecvReply(jsonData));
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
+                status = jsonResponse.getString("status");
+                data = jsonResponse.getJSONObject("data");
 
-            try {
-
-                if (jsonResponse.get("status").equals("SUCCESS")) {
+                if (status.equals("SUCCESS")) {
                     // The Server has responded with a SUCCESS status, so we know that the
                     // TERMINATE_CONNECTION request has been serviced successfully
 
                     // Terminate the ClientService's currently established connection to the Server
                     clientService.terminateConnection();
 
-                } else {
-                    serverResponseData = jsonResponse.getString("data");
+                } else if (status.equals("ERROR")) {
+                    serverResponseData = data.getString("error_message");
 
+                } else if (status.equals("FAIL")) {
+                    serverResponseData = data.getString("fail_message");
                 }
+
             } catch (JSONException e) {
                 e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+
+                serverResponseData = "Connection Error!";
             }
 
             return serverResponseData;
@@ -146,8 +158,9 @@ public class RemoteMenuActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String serverResponseData) {
             if (serverResponseData != null)
-            // The Server has responded with a FAIL or ERROR status, so we notify the user and exit
-            Toast.makeText(getApplicationContext(), serverResponseData, Toast.LENGTH_LONG).show();
+                // The Server has responded with a FAIL or ERROR status or an exception was caught,
+                // so we notify the user and exit
+                Toast.makeText(getApplicationContext(), serverResponseData, Toast.LENGTH_LONG).show();
 
         }
     }

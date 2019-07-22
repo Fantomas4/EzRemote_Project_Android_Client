@@ -4,6 +4,8 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
+import android.os.SystemClock;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import org.json.JSONException;
@@ -33,7 +35,20 @@ public class ClientService extends Service {
     private boolean inConnection;
     // Binder given to clients
     private final IBinder binder;
+    // Used to send HEARTBEAT_CHECK requests at the determined time intervals to the Server
+    private HeartbeatThread heartbeatThread;
 
+
+    public final class Constants {
+
+        // Defines a custom Intent action
+        public static final String BROADCAST_ACTION =
+                "com.example.android.ezremote.BROADCAST";
+
+        // Defines the key for the status "extra" in an Intent
+        public static final String EXTENDED_DATA_STATUS =
+                "com.example.android.ezremote.STATUS";
+    }
 
     private static final Pattern REGEX_IP_ADDRESS
             = Pattern.compile(
@@ -41,7 +56,6 @@ public class ClientService extends Service {
                     + "[0-9]|[0-1][0-9]{2}|[1-9][0-9]|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|[0-1]"
                     + "[0-9]{2}|[1-9][0-9]|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}"
                     + "|[1-9][0-9]|[0-9]))");
-
 
     public ClientService() {
         this.inConnection = false;
@@ -96,62 +110,138 @@ public class ClientService extends Service {
             e.printStackTrace();
         }
         bufReader = new BufferedReader(inputStreamReader);
+
+        // Start the Heartbeat request thread
+        heartbeatThread = new HeartbeatThread();
+        heartbeatThread.start();
+    }
+
+    private class HeartbeatThread extends Thread {
+
+        private boolean stopHeartbeat = false;
+
+        public void run(){
+
+            while (!stopHeartbeat) {
+                // Heartbeat request interval
+                SystemClock.sleep(1000);
+
+                // Create the HEARTBEAT_CHECK request's json message
+                HashMap<String, String> msgData = new HashMap<>();
+                JSONObject jsonData = MessageGenerator.generateJsonObject("HEARTBEAT_CHECK", msgData);
+
+                try {
+                    JSONObject jsonResponse = new JSONObject(sendMsgAndRecvReply(jsonData));
+
+                    if (jsonResponse.getString("status").equals("SUCCESS")) {
+                        // The Server has responded with a SUCCESS status, so we know that our heartbeat request
+                        // was acknowledged and the Server is still there!
+                        Log.d("heartbeat", "HEARTBEAT_CHECK OK!");
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+
+                    // sendMessage() has thrown an exception caught by sendMsgAndRecvReply()
+                    // and re-thrown to us, indicating something went wrong with the transmission
+                    // of our message
+                    if (e instanceof  java.net.SocketException) {
+                        // The Server has abruptly ended the connection
+                        // sendMessage() has already requested the termination of this
+                        // thread by using the provided terminate() method,
+                        // so we simply continue to the next loop where the thread will
+                        // check the stopHeartbeat flag value and stop.
+
+                        // We send a broadcast to all necessary activities so appropriate action
+                        // is taken in the UI and the user is notified
+
+                        /*
+                         * Creates a new Intent containing a Uri object
+                         * BROADCAST_ACTION is a custom Intent action
+                         */
+                        String status = "The Server has abruptly terminated the connection!";
+                        Intent localIntent =
+                                new Intent(Constants.BROADCAST_ACTION)
+                                        // Puts the status into the Intent
+                                        .putExtra(Constants.EXTENDED_DATA_STATUS, status);
+                        // Broadcasts the Intent to receivers in this app.
+                        LocalBroadcastManager.getInstance(ClientService.this).sendBroadcast(localIntent);
+
+                        Log.d("HeartBeatThread", "Broadcast was sent");
+                    }
+                }
+            }
+        }
+
+        public void terminate() {
+            stopHeartbeat = true;
+        }
     }
 
     // Method used to terminate our currently established connection to a Server
     // and return the status of the termination action
-    public boolean terminateConnection() throws JSONException {
+    public boolean terminateConnection() throws IOException {
+        // Temporarily terminate the heartbeat request thread so
+        // that its requests are not send to a closed socket if
+        // the Server successfully satisfies the TERMINATE_CONNECTION
+        // request
+        heartbeatThread.terminate();
+        try {
+            heartbeatThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         // First, we send a TERMINATE_CONNECTION request to the Server
 
         // Create the TERMINATE_CONNECTION request's json message
-        HashMap<String, String> msg_data = new HashMap<>();
-        JSONObject jsonData = MessageGenerator.generateJsonObject("INITIALIZE_NEW_CONNECTION", msg_data);
+        HashMap<String, String> msgData = new HashMap<>();
+        JSONObject jsonData = MessageGenerator.generateJsonObject("INITIALIZE_NEW_CONNECTION", msgData);
 
-        JSONObject jsonResponse = new JSONObject(sendMsgAndRecvReply(jsonData));
+        JSONObject jsonResponse = null;
+        try {
+            jsonResponse = new JSONObject(sendMsgAndRecvReply(jsonData));
 
-        if (jsonResponse.getString("status").equals("SUCCESS")) {
-            // The Server has responded with a SUCCESS status, so we know that our request to
-            // terminate our connection has been acknowledged
+            if (jsonResponse.getString("status").equals("SUCCESS")) {
+                // The Server has responded with a SUCCESS status, so we know that our request to
+                // terminate our connection has been acknowledged
 
-            // Release the Client's resources before closing the socket
-            try {
-                if (inputStreamReader != null) {
-                    inputStreamReader.close();
-                }
+                // Call closeSocket() method to close our connection's socket
+                closeSocket();
 
-                if (bufReader != null) {
-                    bufReader.close();
-                }
+                return true;
 
-                if (outputStreamWriter != null) {
-                    outputStreamWriter.close();
-                }
+            } else {
+                // The Server has responded with a FAIL or ERROR status, so we notify the user by
+                // returning false
 
-                if (bufWriter != null) {
-                    bufWriter.close();
-                }
+                // Restart the Heartbeat request thread since the last TERMINATE_CONNECTION
+                // request was unsuccessful
+                heartbeatThread.start();
 
-            } catch (IOException e) {
-                e.printStackTrace();
+                return false;
             }
+        } catch (IOException e) {
+            e.printStackTrace();
 
-            // Call closeSocket() method to close our connection's socket
-            closeSocket();
+            throw e;
 
-            return true;
+        } catch (JSONException e) {
+            e.printStackTrace();
 
-        } else {
-            // The Server has responded with a FAIL or ERROR status, so we notify the user by
-            // returning false
-            return false;
         }
+
+        return false;
+
+
     }
 
     private void createSocket() throws Exception {
 
         try {
-            this.socket = new Socket();
-            this.socket.connect(new InetSocketAddress(dstAddress, dstPort), 5000);
+            socket = new Socket();
+            socket.connect(new InetSocketAddress(dstAddress, dstPort), 5000);
             this.inConnection = true;
 
         } catch (Exception e) {
@@ -164,6 +254,28 @@ public class ClientService extends Service {
     }
 
     private void closeSocket() {
+        // Release the Client's resources before closing the socket
+        try {
+            if (inputStreamReader != null) {
+                inputStreamReader.close();
+            }
+
+            if (bufReader != null) {
+                bufReader.close();
+            }
+
+            if (outputStreamWriter != null) {
+                outputStreamWriter.close();
+            }
+
+            if (bufWriter != null) {
+                bufWriter.close();
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         if (socket != null) {
             try {
                 socket.close();
@@ -192,15 +304,14 @@ public class ClientService extends Service {
     }
 
 
-    public String sendMsgAndRecvReply(JSONObject jsonObject) {
+    public String sendMsgAndRecvReply(JSONObject jsonObject) throws IOException {
         sendMessage(jsonObject);
 
-        String receivedMessage = receiveMessage();
-
-        return receivedMessage;
+        return receiveMessage();
     }
 
-    private void sendMessage(JSONObject jsonObject) {
+
+    private void sendMessage(JSONObject jsonObject) throws IOException {
 
         String message = jsonObject.toString();
 //        Log.d("writer", "The message1 is: " + message);
@@ -217,8 +328,22 @@ public class ClientService extends Service {
             bufWriter.flush();
         } catch (IOException e) {
             e.printStackTrace();
-        }
 
+            if (e instanceof java.net.SocketException) {
+                // The Server has abruptly terminated the connection
+
+                // Terminate the heartbeat request thread
+                heartbeatThread.terminate();
+
+                // Close the socket
+                closeSocket();
+
+                // rethrow the exception so that the caller
+                // is notified about it
+                throw e;
+
+            }
+        }
     }
 
     private String receiveMessage() {

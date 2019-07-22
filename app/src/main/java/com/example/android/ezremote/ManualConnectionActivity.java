@@ -29,14 +29,21 @@ public class ManualConnectionActivity extends AppCompatActivity {
     private EditText portInput;
     private TextView notificationMsg;
 
+    private String notificationText;
     private ClientService clientService;
     private boolean isBound = false;
 
+
+    public void finishActivity() {
+        finish();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_manual_connection);
+
+        Log.d("ManualConActivity", "MPIKA ONCREATE!!!");
 
         ipInput = findViewById(R.id.ipEditText);
         portInput = findViewById(R.id.portEditText);
@@ -54,9 +61,11 @@ public class ManualConnectionActivity extends AppCompatActivity {
         startService(intent);
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
 
+        notificationText = "";
+
         ipInput.setText("");
         portInput.setText("");
-        notificationMsg.setText("");
+        notificationMsg.setText(notificationText);
     }
 
     @Override
@@ -128,33 +137,51 @@ public class ManualConnectionActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(Object resultObject) {
-            if (resultObject instanceof JSONObject) {
+        protected void onPostExecute(Object executionResult) {
+            if (executionResult instanceof JSONObject) {
                 // We received a JSON object, so we know that the execution
                 // that occurred in doInBackground did not throw any exceptions
 
-                JSONObject jsonResponse = (JSONObject)resultObject;
+                JSONObject jsonResponse = (JSONObject) executionResult;
+                String status = null;
+                JSONObject data = null;
 
                 try {
-                    if (jsonResponse.getString("status").equals("SUCCESS")) {
+                    status = jsonResponse.getString("status");
+                    data = jsonResponse.getJSONObject("data");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                try {
+                    if (status.equals("SUCCESS")) {
                         // The Server has responded with a SUCCESS status, so we know that we have successfully bind our
                         // Client Application to the Server and the Server has granted us access permission
 
                         // Now we are ready to switch to the next activity
                         Intent newActivityIntent = new Intent(ManualConnectionActivity.this, RemoteMenuActivity.class);
                         ManualConnectionActivity.this.startActivity(newActivityIntent);
-                    } else {
-                        // The Server has responded with a FAIL or ERROR status, so we notify the user and exit
-                        notificationMsg.setText(jsonResponse.getString("data"));
+
+                        // Kill this activity
+                        finishActivity();
+
+                    } else if (status.equals("FAIL")){
+                        // The Server has responded with a FAIL status, so we notify the user and exit
+                        notificationMsg.setText(data.getString("fail_message"));
+
+                    } else if (status.equals("ERROR")) {
+                        // The Server has responded with an ERROR status, so we notify the user and exit
+                        notificationMsg.setText(data.getString("error_message"));
+
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
 
-            } else if (resultObject instanceof Exception) {
+            } else if (executionResult instanceof Exception) {
                 // We received an Exception object, so we know that the execution
                 // that occurred in doInBackground threw an exception
-                Exception  e = (Exception)resultObject;
+                Exception  e = (Exception)executionResult;
 
                 e.printStackTrace();
 
