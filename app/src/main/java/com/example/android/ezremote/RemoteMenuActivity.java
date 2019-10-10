@@ -115,44 +115,7 @@ public class RemoteMenuActivity extends NetworkActivity {
         @Override
         protected String doInBackground(Void... voids) {
 
-            String serverResponseData = null;
-
-            // Create the INITIALIZE_NEW_CONNECTION request's json message
-            Map<String, String> msgData = new HashMap<>();
-            JSONObject jsonData = MessageGenerator.generateJsonObject("TERMINATE_CONNECTION", msgData);
-
-            JSONObject jsonResponse = null;
-            String status = null;
-            JSONObject data = null;
-
-            try {
-                jsonResponse = new JSONObject(clientService.sendMsgAndRecvReply(jsonData));
-                status = jsonResponse.getString("status");
-                data = jsonResponse.getJSONObject("data");
-
-                if (status.equals("SUCCESS")) {
-                    // The Server has responded with a SUCCESS status, so we know that the
-                    // TERMINATE_CONNECTION request has been serviced successfully
-
-                    // Terminate the ClientService's currently established connection to the Server
-                    clientService.terminateConnection();
-
-                } else if (status.equals("ERROR")) {
-                    serverResponseData = data.getString("error_message");
-
-                } else if (status.equals("FAIL")) {
-                    serverResponseData = data.getString("fail_message");
-                }
-
-            } catch (JSONException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-
-                serverResponseData = "Connection Error!";
-            }
-
-            return serverResponseData;
+            return clientService.terminateConnection();
         }
 
         @Override

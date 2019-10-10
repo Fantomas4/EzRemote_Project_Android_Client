@@ -181,7 +181,7 @@ public class ClientService extends Service {
 
     // Method used to terminate our currently established connection to a Server
     // and return the status of the termination action
-    public boolean terminateConnection() throws IOException {
+    public String terminateConnection() {
         // Temporarily terminate the heartbeat request thread so
         // that its requests are not send to a closed socket if
         // the Server successfully satisfies the TERMINATE_CONNECTION
@@ -193,24 +193,37 @@ public class ClientService extends Service {
             e.printStackTrace();
         }
 
-        // First, we send a TERMINATE_CONNECTION request to the Server
+        // result holds the string indicating the result of the TERMINATE_CONNECTION request
+        String result;
 
+        // First, we send a TERMINATE_CONNECTION request to the Server
         // Create the TERMINATE_CONNECTION request's json message
         HashMap<String, String> msgData = new HashMap<>();
-        JSONObject jsonData = MessageGenerator.generateJsonObject("INITIALIZE_NEW_CONNECTION", msgData);
+        JSONObject jsonData = MessageGenerator.generateJsonObject("TERMINATE_CONNECTION", msgData);
 
         JSONObject jsonResponse = null;
+        String status = null;
+        JSONObject data = null;
+
         try {
             jsonResponse = new JSONObject(sendMsgAndRecvReply(jsonData));
+            status = jsonResponse.getString("status");
+            data = jsonResponse.getJSONObject("data");
 
-            if (jsonResponse.getString("status").equals("SUCCESS")) {
+            if (status.equals("SUCCESS")) {
                 // The Server has responded with a SUCCESS status, so we know that our request to
                 // terminate our connection has been acknowledged
 
                 // Call closeSocket() method to close our connection's socket
                 closeSocket();
 
-                return true;
+                result = "Disconnected from Remote Server!";
+
+            } else if (status.equals("ERROR")) {
+                result = data.getString("error_message");
+
+            } else if (status.equals("FAIL")) {
+                result = data.getString("fail_message");
 
             } else {
                 // The Server has responded with a FAIL or ERROR status, so we notify the user by
@@ -220,19 +233,21 @@ public class ClientService extends Service {
                 // request was unsuccessful
                 heartbeatThread.start();
 
-                return false;
+                result = "Unable to disconnect. Try again!";
             }
         } catch (IOException e) {
             e.printStackTrace();
 
-            throw e;
+            result = "Connection Error!";
 
         } catch (JSONException e) {
             e.printStackTrace();
 
+            result = "Error: Bad JSON format!";
+
         }
 
-        return false;
+        return result;
 
 
     }
